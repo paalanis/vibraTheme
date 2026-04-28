@@ -1,24 +1,58 @@
-.loading{
-	background:url(../images/ajax-loader.gif) no-repeat center bottom;
-width: 100%;
-min-height: 80px;
-margin: 20px 0px;
+/* ============================================================
+   VIBRA — cargando.css
+   Pantalla de carga
+   ============================================================ */
 
+.loading-overlay,
+#loading,
+.cargando {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(14,14,14,0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 16px;
 }
 
-.loadingxs{
-	background:url(../images/ajax-loader-sm.gif) no-repeat center bottom;
-width: 100%;
-/*min-height: 80px;
-margin: 20px 0px;*/
-
+.loading-spinner,
+.cargando-spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: #A855F7;
+  border-radius: 50%;
+  animation: vibra-spin 0.7s linear infinite;
 }
 
+@keyframes vibra-spin {
+  to { transform: rotate(360deg); }
+}
 
-.loadingsm{
-	background:url(../images/ajax-loader.gif) no-repeat center bottom;
-width: 100%;
-min-height: 20px;
-margin: 0px 0px;
+.loading-text,
+.cargando-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #888;
+}
 
+/* Variante con logo */
+.loading-logo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.loading-logo span {
+  color: #A855F7;
 }

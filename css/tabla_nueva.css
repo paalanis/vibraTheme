@@ -1,132 +1,100 @@
-@import url(https://fonts.googleapis.com/css?family=Roboto+Slab:300);
-* {margin:0;padding:0; border: 0 none; position: relative;}
-*, *:before, *:after {box-sizing: inherit;}
-html{
-  box-sizing: border-box;
-  //background: #0D757D;
-  font-size: 1rem;
-  color: #e6eff0;
-  /*font-family: Roboto Slab;*/
-}
-table * {height: auto; min-height: none;} /* fixed ie9 & <*/
-table {
-  background: #f8f5f0;
-  table-layout: fixed;
-  margin: 1rem auto;
-  width: 98%;
-  box-shadow: 0 0 4px 2px rgba(0,0,0,.4);
-  border-collapse: collapse;
-  border: 1px solid rgba(0,0,0,.5);
-  border-top: 0 none;
-}
-thead {
-  background: #3e3f3a;
-  text-align: center;
-  z-index: 2;
-  color: white;
-}
-thead tr {
-  padding-right: 17px;
-  box-shadow: 0 4px 6px rgba(0,0,0,.6);
-  z-index: 2;
-}
-th {
-  border-right: 2px solid rgba(0,0,0,.2);
-  //padding: .7rem 0;
-  font-size: 1.5rem;
-  font-weight: normal;
-  font-variant: small-caps;
-}
-tbody {
-  display: block;
-  height: calc(50vh - 1px);
-  min-height: calc(200px + 1 px);
-  /*use calc for fixed ie9 & <*/
-  overflow-Y: scroll;
-  color: #000;
-}
-tr {
-  display: block;
+/* ============================================================
+   VIBRA — tabla_nueva.css
+   Variante de tabla con diseño renovado
+   ============================================================ */
+
+/* Wrapper card */
+.tabla-nueva-wrap {
+  background: #FFFFFF;
+  border: 0.5px solid #EEEEE9;
+  border-radius: 10px;
   overflow: hidden;
 }
-tbody tr:nth-child(odd) {
- background: rgba(0,0,0,.2);
+
+/* Barra de herramientas sobre la tabla */
+.tabla-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid #EEEEE9;
+  background: #FFFFFF;
+  gap: 12px;
 }
-th, td {
-  width: 11%;
-  float:left;
+.tabla-toolbar-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #1A1A1A;
 }
-td {
-  padding: .5rem 0 .5rem 1rem;
-  border-right: 2px solid rgba(0,0,0,.2);
-}
-td:nth-child(2n) {}
-[data-campo='Ver'] {
-  width: 5%;
-  text-align: center;
-  padding-left: 0;
-}
-[data-campo='Eliminar'] {
-  width: 5%;
-}
-[data-campo='Chofer'] {
-  width: 18%;
-}
-th:last-child, td:last-child {
-  width: 7%;
-  text-align: center;
-  border-right: 0 none;
-  padding-left: 0;
+.tabla-toolbar .form-control {
+  width: 220px;
+  height: 34px;
+  font-size: 12px;
 }
 
-
-@media only screen and (max-width:800px) {
-  table {
-    border-top: 1px solid ;
-  }
-  thead {display: none;}
-  tbody {
-    height: auto;
-    max-height: 55vh;
-  }
-  tr {
-    border-bottom: 2px solid rgba(0,0,0,.35);
-  }
-  tbody tr:nth-child(odd) {background: rgba(102, 175, 233, .6);}
-  tbody tr:nth-child(even) {background:#F4EAD8;}
-  td {
-    display: block;
-    width: 100%;
-    min-width: 100%;
-    padding: .4rem .5rem .4rem 40%;
-    border-right: 0 none;
-  }
-  td:before {
-    content: attr(data-campo);
-    background: rgba(0,0,0,.1);
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: auto;
-    min-width: 37%;
-    padding-left: .5rem;
-    font-family: monospace;
-    font-size: 150%;
-    font-variant: small-caps;
-    line-height: 1.8;
-  }
-  tbody td:last-child {
-    text-align: left;
-    padding-left: 40%;
-  }
-  td:nth-child(even) {
-    background: rgba(0,0,0,.2);
-  }
-  [data-campo='Ver'] {
-  width: 5%;
-  text-align: left;
-  padding-left:128px;
-  }
+/* Tabla */
+.tabla-nueva {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'DM Sans', sans-serif;
 }
-a {color: #FF7361}
+.tabla-nueva thead tr {
+  background: #0E0E0E;
+}
+.tabla-nueva thead th {
+  color: #888;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 11px 14px;
+  border: none;
+  white-space: nowrap;
+}
+.tabla-nueva thead th:first-child { padding-left: 18px; }
+.tabla-nueva thead th:last-child  { padding-right: 18px; }
+
+.tabla-nueva tbody tr {
+  border-bottom: 0.5px solid #EEEEE9;
+  transition: background 0.1s;
+}
+.tabla-nueva tbody tr:last-child { border-bottom: none; }
+.tabla-nueva tbody tr:hover { background: #F5F5F3; }
+
+.tabla-nueva tbody td {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #1A1A1A;
+  vertical-align: middle;
+}
+.tabla-nueva tbody td:first-child { padding-left: 18px; }
+.tabla-nueva tbody td:last-child  { padding-right: 18px; }
+
+/* Fila seleccionada */
+.tabla-nueva tbody tr.selected td {
+  background: rgba(168,85,247,0.07);
+}
+.tabla-nueva tbody tr.selected td:first-child {
+  border-left: 2px solid #A855F7;
+}
+
+/* Footer con paginación */
+.tabla-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 0.5px solid #EEEEE9;
+  background: #FAFAF8;
+}
+.tabla-footer-count {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: #999;
+}
+.tabla-footer .pagination {
+  margin: 0;
+}

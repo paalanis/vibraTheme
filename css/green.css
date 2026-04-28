@@ -1,53 +1,54 @@
-/* iCheck plugin Flat skin, green
------------------------------------ */
+/* ============================================================
+   VIBRA — green.css
+   Overrides del tema "green" de Bootstrap anterior
+   Redirige los estilos verdes al esquema VIBRA
+   ============================================================ */
+
+/* El tema anterior usaba verde como color primario.
+   Lo reemplazamos con el negro/violeta de VIBRA. */
+
+.btn-success,
+.btn-green {
+  background-color: #10B981 !important;
+  border-color: #059669 !important;
+  color: #FFFFFF !important;
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  border-radius: 8px !important;
+}
+.btn-success:hover, .btn-green:hover {
+  background-color: #059669 !important;
+  border-color: #047857 !important;
+}
+
+/* Navbar que era verde → ahora negro */
+.navbar-default,
+.navbar-green {
+  background-color: #0E0E0E !important;
+  border-color: transparent !important;
+}
+
+/* Links que eran verdes → violeta */
+a { color: #7C3AED; }
+a:hover { color: #A855F7; }
+
+/* Badges/labels verdes → success token */
+.label-success,
+.badge-success {
+  background-color: rgba(16,185,129,0.15) !important;
+  color: #047857 !important;
+}
+
+/* Checkboxes iCheck en verde → violeta */
 .icheckbox_flat-green,
 .iradio_flat-green {
-    display: inline-block;
-    *display: inline;
-    vertical-align: middle;
-    margin: 0;
-    padding: 0;
-    width: 20px;
-    height: 20px;
-    background: url(green.png) no-repeat;
-    border: none;
-    cursor: pointer;
+  border-color: #A855F7 !important;
 }
-
-.icheckbox_flat-green {
-    background-position: 0 0;
-}
-    .icheckbox_flat-green.checked {
-        background-position: -22px 0;
-    }
-    .icheckbox_flat-green.disabled {
-        background-position: -44px 0;
-        cursor: default;
-    }
-    .icheckbox_flat-green.checked.disabled {
-        background-position: -66px 0;
-    }
-
-.iradio_flat-green {
-    background-position: -88px 0;
-}
-    .iradio_flat-green.checked {
-        background-position: -110px 0;
-    }
-    .iradio_flat-green.disabled {
-        background-position: -132px 0;
-        cursor: default;
-    }
-    .iradio_flat-green.checked.disabled {
-        background-position: -154px 0;
-    }
-
-/* HiDPI support */
-@media (-o-min-device-pixel-ratio: 5/4), (-webkit-min-device-pixel-ratio: 1.25), (min-resolution: 120dpi) {
-    .icheckbox_flat-green,
-    .iradio_flat-green {
-        background-image: url(green@2x.png);
-        -webkit-background-size: 176px 22px;
-        background-size: 176px 22px;
-    }
+.icheckbox_flat-green.checked,
+.iradio_flat-green.checked {
+  background-color: #A855F7 !important;
+  border-color: #A855F7 !important;
 }
