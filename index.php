@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="signin-error"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
-    <form method="POST" action="index.php" autocomplete="off">
+    <form method="POST" action="index2.php" autocomplete="off">
 
       <div class="signin-field" style="margin-bottom: 16px;">
         <label class="signin-label" for="usuario">Usuario</label>
