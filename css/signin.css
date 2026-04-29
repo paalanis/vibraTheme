@@ -1,287 +1,40 @@
-/* ============================================================
-   VIBRA — signin.css
-   Página de ingreso al sistema
-   ============================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500&display=swap');
-
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
+body {
+  padding-top: 40px;
+  padding-bottom: 40px;
+  background-color: #eee;
 }
 
-body.signin-page {
-  background-color: #0E0E0E;
-  display: flex;
-  align-items: stretch;
-  min-height: 100vh;
-  font-family: 'DM Sans', sans-serif;
+.form-signin {
+  max-width: 330px;
+  padding: 15px;
+  margin: 0 auto;
 }
-
-/* ---- Layout principal ---- */
-.signin-wrap {
-  display: flex;
-  width: 100%;
-  min-height: 100vh;
+.form-signin .form-signin-heading,
+.form-signin .checkbox {
+  margin-bottom: 10px;
 }
-
-/* ---- Panel izquierdo (marca) ---- */
-.signin-left {
-  flex: 1;
-  background-color: #0E0E0E;
-  background-image:
-    radial-gradient(circle at 20% 20%, rgba(168,85,247,0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 50%);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 52px 56px;
+.form-signin .checkbox {
+  font-weight: normal;
+}
+.form-signin .form-control {
   position: relative;
-  overflow: hidden;
-}
-
-/* Estrella decorativa */
-.signin-left::before {
-  content: '✦';
-  position: absolute;
-  top: 12%;
-  right: 15%;
-  font-size: 48px;
-  color: rgba(168,85,247,0.15);
-  pointer-events: none;
-}
-.signin-left::after {
-  content: '✦';
-  position: absolute;
-  bottom: 18%;
-  left: 12%;
-  font-size: 24px;
-  color: rgba(168,85,247,0.1);
-  pointer-events: none;
-}
-
-/* Logo */
-.signin-logo-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.signin-logo-img {
-  height: 48px;
-  width: auto;
-  filter: brightness(0) invert(1);
-}
-.signin-logo-name {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: 4px;
-  color: #FFFFFF;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.signin-logo-sub {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  color: #666;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-}
-
-/* Tagline */
-.signin-tagline {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 52px;
-  font-weight: 700;
-  color: #FFFFFF;
-  line-height: 1.05;
-  text-transform: uppercase;
-}
-.signin-tagline span {
-  color: #A855F7;
-}
-.signin-tagline-sub {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  color: #666;
-  margin-top: 12px;
-  letter-spacing: 0.3px;
-}
-
-/* Indicadores */
-.signin-dots {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.signin-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #333;
-}
-.signin-dot.active {
-  background-color: #A855F7;
-  width: 20px;
-  border-radius: 3px;
-}
-
-/* ---- Panel derecho (formulario) ---- */
-.signin-right {
-  width: 380px;
-  min-width: 380px;
-  background-color: #1A1A1A;
-  border-left: 1px solid #2A2A2A;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 52px 44px;
-  gap: 24px;
-}
-
-.signin-form-title {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #FFFFFF;
-  margin-bottom: 4px;
-}
-.signin-form-sub {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  color: #666;
-}
-
-.signin-field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.signin-label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #777;
-}
-.signin-input {
-  background-color: #242424;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 11px 14px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
-  color: #FFFFFF;
-  outline: none;
-  transition: border-color 0.15s;
-  width: 100%;
-}
-.signin-input::placeholder { color: #555; }
-.signin-input:focus {
-  border-color: #A855F7;
-  box-shadow: 0 0 0 2px rgba(168,85,247,0.2);
-}
-
-/* Estilos Bootstrap override para inputs en login */
-.form-control {
-  background-color: #242424 !important;
-  border: 1px solid #333 !important;
-  border-radius: 8px !important;
-  padding: 11px 14px !important;
-  font-family: 'DM Sans', sans-serif !important;
-  font-size: 14px !important;
-  color: #FFFFFF !important;
-  height: auto !important;
-  box-shadow: none !important;
-}
-.form-control:focus {
-  border-color: #A855F7 !important;
-  box-shadow: 0 0 0 2px rgba(168,85,247,0.2) !important;
-}
-.control-label {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #777;
-}
-
-.signin-btn {
-  background-color: #A855F7;
-  border: none;
-  border-radius: 8px;
-  padding: 13px 20px;
-  font-family: 'Barlow Condensed', sans-serif;
+  height: auto;
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+  padding: 10px;
   font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #FFFFFF;
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.15s;
 }
-.signin-btn:hover {
-  background-color: #9333EA;
+.form-signin .form-control:focus {
+  z-index: 2;
 }
-
-/* Bootstrap btn override en login */
-.btn-primary {
-  background-color: #A855F7 !important;
-  border-color: #A855F7 !important;
-  font-family: 'Barlow Condensed', sans-serif !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
-  letter-spacing: 2px !important;
-  text-transform: uppercase !important;
-  border-radius: 8px !important;
-  padding: 12px 20px !important;
-  height: auto !important;
+.form-signin input[type="email"] {
+  margin-bottom: -1px;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
 }
-.btn-primary:hover, .btn-primary:focus {
-  background-color: #9333EA !important;
-  border-color: #9333EA !important;
-}
-
-.signin-footer {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  color: #444;
-  text-align: center;
-}
-
-/* ---- Error message ---- */
-.signin-error {
-  background-color: rgba(226,75,74,0.1);
-  border: 1px solid rgba(226,75,74,0.25);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: #F87171;
-  font-family: 'DM Sans', sans-serif;
-}
-.alert-danger {
-  background-color: rgba(226,75,74,0.1) !important;
-  border: 1px solid rgba(226,75,74,0.25) !important;
-  border-radius: 8px !important;
-  color: #F87171 !important;
-  font-family: 'DM Sans', sans-serif !important;
-  font-size: 12px !important;
-}
-
-/* ---- Responsive ---- */
-@media (max-width: 768px) {
-  .signin-left { display: none; }
-  .signin-right {
-    width: 100%;
-    min-width: 0;
-    background-color: #0E0E0E;
-    border-left: none;
-    padding: 40px 28px;
-  }
+.form-signin input[type="password"] {
+  margin-bottom: 10px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
