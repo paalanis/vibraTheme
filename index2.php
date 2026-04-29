@@ -71,7 +71,7 @@ if ($found_cierre && $id_cierre_val) {
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#"><img style="max-width:30px; margin-top: -14px;  margin-right: 0px;"
+          <a class="navbar-brand" href="#"><img style="height:30px; width:auto; vertical-align:middle;"
              src="images/logo2.png"></a>
          <!--  <a class="navbar-brand" href="#">Desarrollos</a> -->
 
@@ -137,7 +137,7 @@ if ($found_cierre && $id_cierre_val) {
       
       <!-- Aqui se cargan los paneles de trabajo -->
       <div class="text-center">
-      <img style="max-width:-webkit-fill-available; margin-top:0px;  width: 55%; height: 85%; margin-right: 0px;" src="images/logo_central.jpg">
+      <img style="display:block; margin:20px auto 0; width:55%; max-width:500px; height:auto;" src="images/logo_central.jpg">
       </div>
 
     </div>
