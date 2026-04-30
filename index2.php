@@ -137,7 +137,7 @@ if ($found_cierre && $id_cierre_val) {
       
       <!-- Aqui se cargan los paneles de trabajo -->
       <div class="text-center">
-      <img style="display:block; margin:20px auto 0; width:55%; max-width:500px; height:auto;" src="images/logo_central.jpg">
+      <img style="display:block; margin:20px auto 0; width:55%; max-width:500px; height:auto;" src="images/logo_central.png">
       </div>
 
     </div>
