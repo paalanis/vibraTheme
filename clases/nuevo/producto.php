@@ -16,14 +16,14 @@ tb_rubro
 ORDER BY
 nombre ASC";
 $rsrubro = mysqli_query($conexion, $sqlrubro); 
-// $sqltalle = "SELECT
-// tb_talle.id_talle as id_talle,
-// tb_talle.nombre as nombre
-// FROM
-// tb_talle
-// ORDER BY
-// nombre ASC";
-// $rstalle = mysqli_query($conexion, $sqltalle);
+$sqltalle = "SELECT
+tb_talle.id_talle as id_talle,
+tb_talle.nombre as nombre
+FROM
+tb_talle
+ORDER BY
+nombre ASC";
+$rstalle = mysqli_query($conexion, $sqltalle);
 $sqliva = "SELECT
 tb_iva_condicion.id_iva_condicion as id_iva,
 tb_iva_condicion.nombre as nombre
@@ -66,6 +66,56 @@ $rsiva = mysqli_query($conexion, $sqliva);
         </div>
       </div>
       <div class="form-group form-group-sm">
+        <label  class="col-lg-3 control-label">Talle</label>
+        <div class="col-lg-9">
+          <select class="form-control" id="dato_talle" required>   
+              <option value=""></option>
+              <?php
+              while ($sql_talle = mysqli_fetch_assoc($rstalle)){
+                $idtalle= $sql_talle['id_talle'];
+                $talle = $sql_talle['nombre'];
+
+                echo utf8_encode('<option value='.$idtalle.'>'.$talle.'</option>');
+                
+              }
+              ?>
+            </select>
+        </div>
+      </div>
+      <div class="form-group form-group-sm">
+        <label  class="col-lg-3 control-label">Color</label>
+        <div class="col-lg-9">
+          <select class="form-control" id="dato_color">   
+              <option value=""></option>
+              <option value="Amarillo">Amarillo</option>
+              <option value="Azul">Azul</option>
+              <option value="Blanco">Blanco</option>
+              <option value="Celeste">Celeste</option>
+              <option value="Negro">Negro</option>
+              <option value="Rojo">Rojo</option>
+              <option value="Otros">Otros</option>
+            </select>
+        </div>
+      </div>
+      <!-- <div class="form-group form-group-sm">
+        <label  class="col-lg-3 control-label">Club</label>
+        <div class="col-lg-9">
+          <select class="form-control" id="dato_club" required>   
+              <option value=""></option>
+              <?php
+              while ($sql_club = mysqli_fetch_assoc($rsclub)){
+                $idclub= $sql_club['id_club'];
+                $club = $sql_club['nombre'];
+
+                echo utf8_encode('<option value='.$idclub.'>'.$club.'</option>');
+                
+              }
+              ?>
+            </select>
+        </div>
+      </div> -->
+
+      <div class="form-group form-group-sm">
         <label for="inputPassword" class="col-lg-3 control-label">Precio costo con IVA</label>
         <div class="col-lg-9">
           <input type="text" class="form-control" autocomplete="off" id="dato_costo" aria-describedby="basic-addon1" required>
@@ -99,39 +149,7 @@ $rsiva = mysqli_query($conexion, $sqliva);
               ?>
             </select>
         </div>
-      </div>
-      <!-- <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Club</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_club" required>   
-              <option value=""></option>
-              <?php
-              while ($sql_club = mysqli_fetch_assoc($rsclub)){
-                $idclub= $sql_club['id_club'];
-                $club = $sql_club['nombre'];
-
-                echo utf8_encode('<option value='.$idclub.'>'.$club.'</option>');
-                
-              }
-              ?>
-            </select>
-        </div>
-      </div> -->
-      <!-- <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Color</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_color">   
-              <option value=""></option>
-              <option value="Amarillo">Amarillo</option>
-              <option value="Azul">Azul</option>
-              <option value="Blanco">Blanco</option>
-              <option value="Celeste">Celeste</option>
-              <option value="Negro">Negro</option>
-              <option value="Rojo">Rojo</option>
-              <option value="Otros">Otros</option>
-            </select>
-        </div>
-      </div> -->
+      </div>      
       <div class="form-group form-group-sm">
         <label  class="col-lg-3 control-label">IVA</label>
         <div class="col-lg-9">
@@ -149,31 +167,14 @@ $rsiva = mysqli_query($conexion, $sqliva);
             </select>
         </div>
       </div>
-     <!--  <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Talle</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_talle" required>   
-              <option value=""></option>
-              <?php
-              while ($sql_talle = mysqli_fetch_assoc($rstalle)){
-                $idtalle= $sql_talle['id_talle'];
-                $talle = $sql_talle['nombre'];
-
-                echo utf8_encode('<option value='.$idtalle.'>'.$talle.'</option>');
-                
-              }
-              ?>
-            </select>
-        </div>
-      </div> -->
       <div class="form-group form-group-sm">
         <label for="inputPassword" class="col-lg-3 control-label">Codigo</label>
         <div class="col-lg-9">
           <input type="text" class="form-control" autocomplete="off" id="dato_codigo" aria-describedby="basic-addon1" required>
         </div>
       </div>
-
-      <div align="right">
+      
+      <!-- <div align="right">
       <h3><span class="label label-default">Uso exclusivo para productos que pasen por balanza</span></h3>
       </div>
       
@@ -186,7 +187,7 @@ $rsiva = mysqli_query($conexion, $sqliva);
              <option value="0">NO</option>
             </select>
         </div>
-      </div>
+      </div>-->
 
    </fieldset>
  
