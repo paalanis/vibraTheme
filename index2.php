@@ -115,6 +115,7 @@ if ($found_cierre && $id_cierre_val) {
                 <li role="separator" class="divider"></li>
                 <li><a href="#" class="menu" title="nuevo_producto" onmouseup="cerrar()">Productos</a></li>
                 <li><a href="#" class="menu" title="nuevo_buscaproducto" onmouseup="cerrar()">Modificar Productos</a></li>
+                <li><a href="#" class="menu" title="nuevo_etiqueta" onmouseup="cerrar()">Imprimir Etiquetas</a></li>
                 <li role="separator" class="divider"></li>
                 <li><a href="#" class="menu" title="nuevo_rubro" onmouseup="cerrar()">Rubros</a></li>
               </ul>
