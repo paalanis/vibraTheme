@@ -116,13 +116,13 @@ $rsiva = mysqli_query($conexion, $sqliva);
       </div> -->
 
       <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Precio costo con IVA</label>
+        <label for="inputPassword" class="col-lg-3 control-label">Precio costo</label>
         <div class="col-lg-9">
           <input type="text" class="form-control" autocomplete="off" id="dato_costo" aria-describedby="basic-addon1" required>
         </div>
       </div>
       <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Precio venta con IVA</label>
+        <label for="inputPassword" class="col-lg-3 control-label">Precio venta</label>
         <div class="col-lg-9">
           <input type="text" class="form-control" autocomplete="off" id="dato_venta" aria-describedby="basic-addon1" required>
         </div>
