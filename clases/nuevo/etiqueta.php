@@ -70,10 +70,10 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
       <div class="form-group form-group-sm" style="margin-bottom:0;">
         <label class="control-label">Rollo (mm)&nbsp;</label>
         <input type="number" id="etq_ancho" class="form-control input-sm"
-               value="57" min="20" max="120" style="display:inline-block;width:58px;">
+               value="50" min="20" max="120" style="display:inline-block;width:58px;">
         <span style="vertical-align:middle;">&times;</span>
         <input type="number" id="etq_alto" class="form-control input-sm"
-               value="32" min="15" max="200" style="display:inline-block;width:58px;">
+               value="30" min="15" max="200" style="display:inline-block;width:58px;">
       </div>
     </div>
 

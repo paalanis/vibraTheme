@@ -46,7 +46,7 @@ if ($found_cierre && $id_cierre_val) {
     <link rel="shortcut icon" href="images/logo.png" type="image/x-icon">
 
 
-    <title>HOLA! Express</title>
+    <title>Vibra</title>
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/bootstrap-toggle.min.css" rel="stylesheet">
@@ -78,7 +78,7 @@ if ($found_cierre && $id_cierre_val) {
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="/holaexpress">Inicio</a></li>
+            <li class="active"><a href="">Inicio</a></li>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-e xpanded="false">Ventas <span class="caret"></span></a>
               <ul class="dropdown-menu" role="menu">
