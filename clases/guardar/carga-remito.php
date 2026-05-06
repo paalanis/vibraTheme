@@ -1,39 +1,52 @@
-<?php 
+<?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-header("Location: ../../index.php");
+    header("Location: ../../index.php"); exit();
 }
-include '../../conexion/conexion.php';
+require_once '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-	$array=array('success'=>'false');
-	echo json_encode($array);
-	exit();
-}else{
+    echo json_encode(['success' => 'false']);
+    exit();
+}
 
-	
-	$proveedor=$_REQUEST['dato_proveedor'];
-	$sucursal=$_REQUEST['dato_sucursal'];
-	$remito=$_REQUEST['dato_remito'];
+$proveedor  = (int)($_REQUEST['dato_proveedor'] ?? 0);
+$sucursal   = (int)($_REQUEST['dato_sucursal']  ?? 0);
+$remito_num = $_REQUEST['dato_remito'] ?? '';
+$remito     = $sucursal . '-' . $remito_num;
 
-	$remito = $sucursal.'-'.$remito;
-			
-	$sql = "INSERT IGNORE INTO tb_existencias(
-      id_productos, 
-      cantidad)
-	SELECT 
-	      tb_remitos.id_productos as id_producto,
-	      tb_remitos.cantidad as cantidad
-	FROM tb_remitos
-	WHERE
-	tb_remitos.estado = '0' AND tb_remitos.numero = '$remito' AND tb_remitos.id_proveedores = '$proveedor'
-	ON DUPLICATE KEY UPDATE tb_existencias.cantidad = tb_existencias.cantidad+tb_remitos.cantidad";
-	mysqli_query($conexion,$sql);    
+mysqli_begin_transaction($conexion);
 
-	$sql = "UPDATE tb_remitos SET tb_remitos.estado = '1' WHERE tb_remitos.estado = '0' AND tb_remitos.numero = '$remito' AND tb_remitos.id_proveedores = '$proveedor'";
-	mysqli_query($conexion,$sql);    
+try {
+    // Ingresa stock: suma cantidad a tb_existencias.
+    // VALUES(cantidad) referencia el valor a insertar (compatible MySQL 5.6+).
+    $stmt1 = mysqli_prepare($conexion,
+        "INSERT INTO tb_existencias (id_productos, cantidad)
+         SELECT id_productos, cantidad
+         FROM tb_remitos
+         WHERE estado = '0' AND numero = ? AND id_proveedores = ?
+         ON DUPLICATE KEY UPDATE tb_existencias.cantidad = tb_existencias.cantidad + VALUES(cantidad)"
+    );
+    mysqli_stmt_bind_param($stmt1, 'si', $remito, $proveedor);
+    if (!mysqli_stmt_execute($stmt1)) {
+        throw new Exception('Error actualizando existencias');
+    }
+    mysqli_stmt_close($stmt1);
 
-	$array=array('success'=>'true');
-	echo json_encode($array);
-		
-} //fin else conexion
-?>
+    // Marca el remito como procesado.
+    $stmt2 = mysqli_prepare($conexion,
+        "UPDATE tb_remitos SET estado = '1'
+         WHERE estado = '0' AND numero = ? AND id_proveedores = ?"
+    );
+    mysqli_stmt_bind_param($stmt2, 'si', $remito, $proveedor);
+    if (!mysqli_stmt_execute($stmt2)) {
+        throw new Exception('Error actualizando estado del remito');
+    }
+    mysqli_stmt_close($stmt2);
+
+    mysqli_commit($conexion);
+    echo json_encode(['success' => 'true']);
+
+} catch (Exception $e) {
+    mysqli_rollback($conexion);
+    echo json_encode(['success' => 'false', 'error' => $e->getMessage()]);
+}

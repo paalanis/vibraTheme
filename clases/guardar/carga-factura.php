@@ -1,53 +1,54 @@
-<?php 
+<?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-header("Location: ../../index.php");
+    header("Location: ../../index.php"); exit();
 }
-include '../../conexion/conexion.php';
+require_once '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-	$array=array('success'=>'false');
-	echo json_encode($array);
-	exit();
-}else{
+    echo json_encode(['success' => 'false']);
+    exit();
+}
 
-	$factura=$_REQUEST['dato_factura'];
-	$fecha=$_REQUEST['dato_fecha'];
-	$cliente=$_REQUEST['dato_cliente'];
-	$producto=$_REQUEST['dato_producto'];
-	$precio=$_REQUEST['dato_precio'];
-	$cantidad=$_REQUEST['dato_cantidad'];
-	$sucursal=$_REQUEST['dato_sucursal'];
-	
-	$subtotal = $precio * $cantidad;
+$factura  = (int)($_REQUEST['dato_factura']  ?? 0);
+$fecha    = $_REQUEST['dato_fecha']           ?? '';
+$cliente  = (int)($_REQUEST['dato_cliente']  ?? 0);
+$producto = (int)($_REQUEST['dato_producto'] ?? 0);
+$precio   = (float)($_REQUEST['dato_precio'] ?? 0);
+$cantidad = (float)($_REQUEST['dato_cantidad'] ?? 0);
+$sucursal = (int)($_REQUEST['dato_sucursal'] ?? 0);
+$cierre   = (int)($_SESSION['cierre']        ?? 0); // id_cierre es NOT NULL en tb_ventas
+$subtotal = round($precio * $cantidad, 2);
 
-	$sqlcontrol = "SELECT
-		tb_ventas.id_ventas
-		FROM
-		tb_ventas
-		WHERE
-		tb_ventas.id_productos = '$producto' AND
-		tb_ventas.id_sucursal = '$sucursal' AND
-		tb_ventas.numero_factura = '$factura' AND
-		tb_ventas.id_clientes = '$cliente' AND
-		tb_ventas.estado = '0'";
+// Control de duplicado — prepared statement para evitar SQL injection.
+// bind_result en lugar de get_result (compatible con hosting sin mysqlnd).
+$stmtc = mysqli_prepare($conexion,
+    "SELECT id_ventas FROM tb_ventas
+     WHERE id_productos = ? AND id_sucursal = ? AND numero_factura = ?
+       AND id_clientes = ? AND estado = '0'"
+);
+mysqli_stmt_bind_param($stmtc, 'iiii', $producto, $sucursal, $factura, $cliente);
+mysqli_stmt_execute($stmtc);
+mysqli_stmt_bind_result($stmtc, $id_venta_dup);
+$duplicado = (bool)mysqli_stmt_fetch($stmtc);
+mysqli_stmt_close($stmtc);
 
-	$rscontrol = mysqli_query($conexion, $sqlcontrol);	
-	$filas = mysqli_num_rows($rscontrol);
-	if ($filas > 0) {
+if ($duplicado) {
+    echo json_encode(['success' => 'duplicado', 'factura' => $factura, 'cliente' => $cliente]);
+    exit();
+}
 
-			$array=array('success'=>'duplicado', 'factura'=>$factura, 'cliente'=>$cliente);
-			echo json_encode($array);
+// Inserta en carrito (estado queda en 0 hasta confirmar factura).
+// Tipos: s=fecha, i=cliente, i=sucursal, i=factura, i=producto,
+//        d=cantidad, d=precio, d=subtotal, i=cierre
+$stmt = mysqli_prepare($conexion,
+    "INSERT INTO tb_ventas
+     (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad, precio_venta, subtotal, id_cierre)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+);
+mysqli_stmt_bind_param($stmt, 'siiiidddi',
+    $fecha, $cliente, $sucursal, $factura, $producto, $cantidad, $precio, $subtotal, $cierre
+);
+mysqli_stmt_execute($stmt);
+mysqli_stmt_close($stmt);
 
-	}else{
-			
-				$sql = "INSERT INTO tb_ventas (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad, precio_venta, subtotal)
-				VALUES ('$fecha', '$cliente', '$sucursal', '$factura', '$producto', '$cantidad', '$precio', '$subtotal')";
-			mysqli_query($conexion,$sql);    
-
-
-			$array=array('success'=>'true', 'factura'=>$factura, 'cliente'=>$cliente);
-			echo json_encode($array);
-	}
-		
-} //fin else conexion
-?>
+echo json_encode(['success' => 'true', 'factura' => $factura, 'cliente' => $cliente]);

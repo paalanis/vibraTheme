@@ -7,10 +7,12 @@ require_once '../../conexion/conexion.php';
 require_once '../../conexion/csrf.php';
 csrf_validate();
 
-$id = (int)($_POST['id'] ?? 0);
+// $_REQUEST acepta tanto GET (llamado desde autoriza.php) como POST.
+$id = (int)($_REQUEST['id'] ?? 0);
 if ($id <= 0) { echo json_encode(['success' => 'false']); exit(); }
 
-$stmt = mysqli_prepare($conexion, "DELETE FROM tb_ventas WHERE id_ventas = ?");
+// AND estado = '0' evita borrar ventas ya confirmadas (que ya descontaron stock).
+$stmt = mysqli_prepare($conexion, "DELETE FROM tb_ventas WHERE id_ventas = ? AND estado = '0'");
 mysqli_stmt_bind_param($stmt, 'i', $id);
 echo json_encode(['success' => mysqli_stmt_execute($stmt) ? 'true' : 'false']);
 mysqli_stmt_close($stmt);

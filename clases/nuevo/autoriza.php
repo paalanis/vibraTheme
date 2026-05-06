@@ -6,6 +6,7 @@ header("Location: ../../index.php");
 if (!isset($_SESSION['cierre'])) {
 header("Location: abrecaja.php");
 }
+require_once '../../conexion/csrf.php';
 date_default_timezone_set("America/Argentina/Mendoza");
 $fecha = date("d-m-Y H:i");  
 $id = $_REQUEST['id_producto'];
@@ -58,7 +59,7 @@ $factura2 = $_REQUEST['factura'];
           var cierre = $('#cierre_').val();
           var autoriza = <?php echo $_SESSION['autoriza'];?>;
           var id_producto = $('#articulo').val();
-          var pars = "id=" + id_producto + "&";
+          var pars = "id=" + id_producto + "&csrf_token=<?php echo csrf_token(); ?>&";
 
           if ($(this).val() == autoriza) {
 
