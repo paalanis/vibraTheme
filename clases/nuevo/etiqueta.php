@@ -10,7 +10,7 @@ if (mysqli_connect_errno()) {
     exit();
 }
 
-// Búsqueda AJAX: devuelve JSON con productos
+// Búsqueda AJAX
 if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     $buscar = '%' . mysqli_real_escape_string($conexion, $_POST['q']) . '%';
     $sql = "SELECT p.id_productos, p.nombre, p.codigo, p.precio_venta, p.color,
@@ -19,8 +19,8 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
             LEFT JOIN tb_talle t ON p.id_talle = t.id_talle
             WHERE p.nombre LIKE '$buscar' OR p.codigo LIKE '$buscar'
             ORDER BY p.nombre ASC
-            LIMIT 60";
-    $rs = mysqli_query($conexion, $sql);
+            LIMIT 100";
+    $rs  = mysqli_query($conexion, $sql);
     $rows = [];
     while ($r = mysqli_fetch_assoc($rs)) {
         $rows[] = [
@@ -43,249 +43,321 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
 </div>
 <br>
 
+<!-- Panel QZ Tray -->
+<div class="well bs-component" style="padding:10px 15px;">
+  <div class="row">
+
+    <div class="col-sm-4">
+      <div class="form-group form-group-sm" style="margin-bottom:0;">
+        <label class="control-label">
+          <span id="etq_dot" style="font-size:16px; color:#d9534f; vertical-align:middle;">●</span>
+          &nbsp;QZ Tray&nbsp;
+        </label>
+        <button type="button" class="btn btn-xs btn-default" id="etq_btn_conectar">Conectar</button>
+        <span id="etq_estado" class="text-muted" style="font-size:11px; margin-left:5px;">desconectado</span>
+      </div>
+    </div>
+
+    <div class="col-sm-4">
+      <div class="form-group form-group-sm" style="margin-bottom:0;">
+        <label class="control-label">Impresora&nbsp;</label>
+        <input type="text" id="etq_printer" class="form-control input-sm"
+               value="XP-470B" style="display:inline-block;width:140px;">
+      </div>
+    </div>
+
+    <div class="col-sm-4">
+      <div class="form-group form-group-sm" style="margin-bottom:0;">
+        <label class="control-label">Rollo (mm)&nbsp;</label>
+        <input type="number" id="etq_ancho" class="form-control input-sm"
+               value="57" min="20" max="120" style="display:inline-block;width:58px;">
+        <span style="vertical-align:middle;">&times;</span>
+        <input type="number" id="etq_alto" class="form-control input-sm"
+               value="32" min="15" max="200" style="display:inline-block;width:58px;">
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Buscador + tabla -->
 <div class="well bs-component">
   <div class="row">
     <div class="col-lg-12">
       <fieldset>
-
-        <!-- Buscador -->
         <div class="form-group form-group-sm">
           <label class="col-lg-2 control-label">Buscar producto</label>
-          <div class="col-lg-6">
+          <div class="col-lg-5">
             <input type="text" class="form-control" id="etq_buscar"
                    autocomplete="off" placeholder="Nombre o código...">
           </div>
-          <div class="col-lg-4">
-            <button type="button" class="btn btn-default btn-sm" id="etq_btn_todos">
-              Ver todos
-            </button>
+          <div class="col-lg-5">
+            <button type="button" class="btn btn-default btn-sm" id="etq_btn_todos">Ver todos</button>
             <button type="button" class="btn btn-primary btn-sm" id="etq_btn_imprimir" disabled>
               <span class="glyphicon glyphicon-print"></span> Imprimir seleccionados
             </button>
           </div>
         </div>
-
-        <!-- Contador seleccionados -->
         <div class="form-group form-group-sm">
           <div class="col-lg-offset-2 col-lg-10">
             <span id="etq_contador" class="label label-info">0 productos seleccionados</span>
+            &nbsp;<span id="etq_msg" class="label label-default" style="display:none;"></span>
           </div>
         </div>
-
       </fieldset>
     </div>
   </div>
 
-  <!-- Tabla de resultados -->
   <div class="row">
     <div class="col-lg-12">
+
       <div id="etq_loading" class="text-center" style="display:none;">
         <div class="loadingsm"></div>
       </div>
 
-      <table class="table table-hover table-condensed table-bordered" id="etq_tabla" style="display:none;">
+      <table class="table table-hover table-condensed table-bordered"
+             id="etq_tabla" style="display:none;">
         <thead>
           <tr>
-            <th style="width:40px; text-align:center;">
+            <th style="width:36px;text-align:center;">
               <input type="checkbox" id="etq_sel_todos" title="Seleccionar todos">
             </th>
-            <th>Código</th>
-            <th>Nombre</th>
-            <th>Talle</th>
-            <th>Color</th>
-            <th>Precio</th>
-            <th style="width:80px;">Cantidad</th>
+            <th>Código</th><th>Nombre</th><th>Talle</th><th>Color</th><th>Precio</th>
+            <th style="width:68px;">Cant.</th>
           </tr>
         </thead>
         <tbody id="etq_tbody"></tbody>
       </table>
 
-      <div id="etq_vacio" class="text-center text-muted" style="display:none; padding:20px;">
-        No se encontraron productos.
-      </div>
+      <div id="etq_vacio" class="text-center text-muted"
+           style="display:none;padding:20px;">No se encontraron productos.</div>
     </div>
   </div>
 </div>
 
-<!-- =====================================================================
-     VENTANA DE IMPRESIÓN  (se abre en nueva pestaña)
-     ===================================================================== -->
+<!-- ===================================================================
+     Scripts
+=================================================================== -->
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qz-tray/qz-tray.js"></script>
 <script>
 (function () {
 
-  /* ── helpers ── */
-  function mostrarContador() {
-    var n = $('#etq_tbody input[type=checkbox]:checked').length;
-    $('#etq_contador').text(n + ' producto' + (n !== 1 ? 's' : '') + ' seleccionado' + (n !== 1 ? 's' : ''));
-    $('#etq_btn_imprimir').prop('disabled', n === 0);
+  /* ── Estado QZ ──────────────────────────── */
+  var conectado = false;
+
+  function setEstado(ok, txt) {
+    conectado = ok;
+    $('#etq_dot').css('color', ok ? '#5cb85c' : '#d9534f');
+    $('#etq_estado').text(txt);
+    $('#etq_btn_conectar').text(ok ? 'Desconectar' : 'Conectar');
+    refrescarBoton();
   }
 
-  function renderTabla(productos) {
-    var $tbody = $('#etq_tbody').empty();
-    if (!productos || productos.length === 0) {
-      $('#etq_tabla').hide();
-      $('#etq_vacio').show();
-      return;
-    }
-    $('#etq_vacio').hide();
-    $('#etq_tabla').show();
-    $.each(productos, function (i, p) {
-      var fila = '<tr>' +
+  function conectar() {
+    if (typeof qz === 'undefined') { setEstado(false, 'qz-tray.js no disponible'); return; }
+    setEstado(false, 'conectando...');
+    qz.websocket.connect()
+      .then(function () { setEstado(true, 'conectado'); })
+      .catch(function (e) { setEstado(false, 'sin QZ Tray (' + e.message + ')'); });
+  }
+
+  $('#etq_btn_conectar').on('click', function () {
+    if (conectado) {
+      qz.websocket.disconnect().then(function () { setEstado(false, 'desconectado'); });
+    } else { conectar(); }
+  });
+
+  setTimeout(function () { if (typeof qz !== 'undefined') conectar(); }, 700);
+
+  /* ── Tabla ──────────────────────────────── */
+  function contarSeleccionados() {
+    return $('#etq_tbody input[type=checkbox]:checked').length;
+  }
+  function refrescarBoton() {
+    $('#etq_btn_imprimir').prop('disabled', !conectado || contarSeleccionados() === 0);
+  }
+  function actualizarContador() {
+    var n = contarSeleccionados();
+    $('#etq_contador').text(n + ' producto' + (n !== 1 ? 's' : '') + ' seleccionado' + (n !== 1 ? 's' : ''));
+    refrescarBoton();
+  }
+
+  function esc(s) { return $('<span>').text(s || '').html(); }
+
+  function renderTabla(lista) {
+    var $b = $('#etq_tbody').empty();
+    if (!lista || !lista.length) { $('#etq_tabla').hide(); $('#etq_vacio').show(); return; }
+    $('#etq_vacio').hide(); $('#etq_tabla').show();
+    $.each(lista, function (i, p) {
+      $b.append(
+        '<tr>' +
         '<td style="text-align:center;vertical-align:middle;">' +
-          '<input type="checkbox" class="etq_chk" data-id="' + p.id + '"' +
-          ' data-nombre="' + $('<span>').text(p.nombre).html() + '"' +
-          ' data-codigo="' + $('<span>').text(p.codigo).html() + '"' +
-          ' data-precio="' + p.precio + '"' +
-          ' data-color="' + $('<span>').text(p.color).html() + '"' +
-          ' data-talle="' + $('<span>').text(p.talle).html() + '">' +
-        '</td>' +
-        '<td style="vertical-align:middle;font-family:monospace;">' + $('<span>').text(p.codigo).html() + '</td>' +
-        '<td style="vertical-align:middle;">' + $('<span>').text(p.nombre).html() + '</td>' +
-        '<td style="vertical-align:middle;">' + $('<span>').text(p.talle).html() + '</td>' +
-        '<td style="vertical-align:middle;">' + $('<span>').text(p.color).html() + '</td>' +
+          '<input type="checkbox" class="etq_chk"' +
+          ' data-nombre="' + esc(p.nombre) + '" data-codigo="' + esc(p.codigo) + '"' +
+          ' data-precio="' + p.precio + '" data-color="' + esc(p.color) + '"' +
+          ' data-talle="' + esc(p.talle) + '"></td>' +
+        '<td style="vertical-align:middle;font-family:monospace;">' + esc(p.codigo) + '</td>' +
+        '<td style="vertical-align:middle;">' + esc(p.nombre) + '</td>' +
+        '<td style="vertical-align:middle;">' + esc(p.talle)  + '</td>' +
+        '<td style="vertical-align:middle;">' + esc(p.color)  + '</td>' +
         '<td style="vertical-align:middle;">$' + p.precio + '</td>' +
         '<td style="vertical-align:middle;">' +
-          '<input type="number" class="form-control input-sm etq_qty" value="1" min="1" max="99" style="width:64px;">' +
-        '</td>' +
-      '</tr>';
-      $tbody.append(fila);
+          '<input type="number" class="form-control input-sm etq_qty"' +
+          ' value="1" min="1" max="99" style="width:58px;"></td>' +
+        '</tr>'
+      );
     });
-    mostrarContador();
+    actualizarContador();
   }
 
   function buscar(q) {
-    $('#etq_loading').show();
-    $('#etq_tabla').hide();
-    $('#etq_vacio').hide();
-    $.post(window.location.pathname.replace(/index2\.php.*/, '') + 'clases/nuevo/etiqueta.php',
-      { accion: 'buscar', q: q },
-      function (data) {
-        $('#etq_loading').hide();
-        renderTabla(data);
-      }, 'json'
-    ).fail(function () {
+    $('#etq_loading').show(); $('#etq_tabla').hide(); $('#etq_vacio').hide();
+    $.post('clases/nuevo/etiqueta.php', { accion: 'buscar', q: q }, function (d) {
+      $('#etq_loading').hide(); renderTabla(d);
+    }, 'json').fail(function () {
       $('#etq_loading').hide();
-      $('#etq_vacio').text('Error al cargar productos.').show();
+      $('#etq_vacio').text('Error al consultar la base de datos.').show();
     });
   }
 
-  /* ── eventos ── */
-  var timerBuscar;
+  var timer;
   $('#etq_buscar').on('input', function () {
-    clearTimeout(timerBuscar);
+    clearTimeout(timer);
     var q = $(this).val().trim();
     if (q.length < 2) return;
-    timerBuscar = setTimeout(function () { buscar(q); }, 350);
+    timer = setTimeout(function () { buscar(q); }, 350);
   });
-
-  $('#etq_btn_todos').on('click', function () {
-    $('#etq_buscar').val('');
-    buscar('');
-  });
-
-  $(document).on('change', '.etq_chk', mostrarContador);
-  $(document).on('input', '.etq_qty', function () {
-    if ($(this).val() < 1) $(this).val(1);
-  });
-
+  $('#etq_btn_todos').on('click', function () { $('#etq_buscar').val(''); buscar(''); });
+  $(document).on('change', '.etq_chk', actualizarContador);
+  $(document).on('input',  '.etq_qty', function () { if (+$(this).val() < 1) $(this).val(1); });
   $('#etq_sel_todos').on('change', function () {
-    $('.etq_chk').prop('checked', $(this).is(':checked'));
-    mostrarContador();
+    $('.etq_chk').prop('checked', $(this).is(':checked')); actualizarContador();
   });
 
-  /* ── imprimir ── */
+  /* ── Imprimir con QZ Tray ───────────────── */
   $('#etq_btn_imprimir').on('click', function () {
+    if (!conectado) { mostrarMsg('Conectá QZ Tray primero', 'warning'); return; }
     var items = [];
     $('#etq_tbody tr').each(function () {
-      var chk = $(this).find('.etq_chk');
-      if (chk.is(':checked')) {
+      var c = $(this).find('.etq_chk');
+      if (c.is(':checked')) {
         items.push({
-          nombre: chk.data('nombre'),
-          codigo: chk.data('codigo'),
-          precio: chk.data('precio'),
-          color:  chk.data('color'),
-          talle:  chk.data('talle'),
-          qty:    parseInt($(this).find('.etq_qty').val()) || 1
+          nombre: c.data('nombre'), codigo: c.data('codigo'),
+          precio: c.data('precio'), color:  c.data('color'),
+          talle:  c.data('talle'),
+          qty: parseInt($(this).find('.etq_qty').val()) || 1
         });
       }
     });
-    if (items.length === 0) return;
-    abrirVentanaImpresion(items);
+    if (!items.length) return;
+    imprimirItems(items);
   });
 
-  /* ── ventana de impresión ── */
-  function abrirVentanaImpresion(items) {
+  function imprimirItems(items) {
+    var printer  = $('#etq_printer').val().trim() || 'XP-470B';
+    var anchoMM  = parseFloat($('#etq_ancho').val()) || 57;
+    var altoMM   = parseFloat($('#etq_alto').val())  || 32;
+    var anchoIn  = +(anchoMM / 25.4).toFixed(4);
+    var altoIn   = +(altoMM  / 25.4).toFixed(4);
 
-    /* Construir etiquetas HTML (una por unidad) */
-    var etiquetas = '';
+    var total = 0;
+    items.forEach(function (p) { total += p.qty; });
+
+    mostrarMsg('Enviando 0 / ' + total + '...', 'info');
+    $('#etq_btn_imprimir').prop('disabled', true);
+
+    var config = qz.configs.create(printer, {
+      size:         { width: anchoIn, height: altoIn },
+      units:        'in',
+      scaleContent: true,
+      colorType:    'blackwhite',
+      copies:       1
+    });
+
+    /* Encadenamos un print() por cada unidad */
+    var cadena  = Promise.resolve();
+    var enviados = 0;
+
     items.forEach(function (p) {
       for (var i = 0; i < p.qty; i++) {
-        var svgId = 'bc_' + Math.random().toString(36).slice(2);
-        etiquetas +=
-          '<div class="etiqueta">' +
-            '<svg class="bc-svg" id="' + svgId + '" data-codigo="' + htmlEsc(p.codigo) + '"></svg>' +
-            '<div class="sku">' + htmlEsc(p.codigo) + '</div>' +
-            '<div class="nombre">' + htmlEsc(p.nombre) + '</div>' +
-            '<div class="variante">' + htmlEsc(p.talle) + (p.color ? '  ' + htmlEsc(p.color) : '') + '</div>' +
-            '<div class="precio">$' + p.precio + '</div>' +
-          '</div>';
+        (function (prod) {
+          cadena = cadena.then(function () {
+            var data = [{ type: 'pixel', format: 'html', flavor: 'plain',
+                          data: htmlEtiqueta(prod, anchoMM, altoMM) }];
+            return qz.print(config, data).then(function () {
+              enviados++;
+              mostrarMsg('Enviando ' + enviados + ' / ' + total + '...', 'info');
+            });
+          });
+        })(p);
       }
     });
 
-    var html = '<!DOCTYPE html><html lang="es"><head>' +
-      '<meta charset="utf-8">' +
-      '<title>Etiquetas VIBRA</title>' +
-      '<style>' +
-        '@page { margin: 4mm; }' +
-        'body { margin:0; font-family: Arial, sans-serif; }' +
-        '.grilla { display:flex; flex-wrap:wrap; gap:4mm; padding:2mm; }' +
-        '.etiqueta {' +
-          'width:57mm; min-height:32mm;' +
-          'border:0.5px solid #ccc;' +
-          'border-radius:2px;' +
-          'padding:3mm 3mm 2mm;' +
-          'box-sizing:border-box;' +
-          'display:flex; flex-direction:column; align-items:flex-start;' +
-          'background:#fff;' +
-          'page-break-inside:avoid;' +
-        '}' +
-        '.etiqueta .bc-svg { width:100%; max-height:30px; }' +
-        '.etiqueta .sku  { font-size:7pt; color:#555; font-family:monospace; margin-top:1mm; }' +
-        '.etiqueta .nombre { font-size:9pt; font-weight:bold; color:#111; line-height:1.2; margin:1.5mm 0 1mm; }' +
-        '.etiqueta .variante { font-size:7pt; color:#555; }' +
-        '.etiqueta .precio { font-size:10pt; font-weight:bold; color:#111; margin-top:1.5mm; }' +
-        '@media print {' +
-          'body { -webkit-print-color-adjust:exact; }' +
-        '}' +
-      '</style>' +
-      '</head><body>' +
-      '<div class="grilla">' + etiquetas + '</div>' +
-      '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>' +
-      '<script>' +
-        'window.onload = function() {' +
-          'document.querySelectorAll(".bc-svg").forEach(function(el) {' +
-            'try {' +
-              'JsBarcode(el, el.dataset.codigo, {' +
-                'format:"CODE128", width:1.4, height:28,' +
-                'displayValue:false, margin:1' +
-              '});' +
-            '} catch(e) {}' +
-          '});' +
-          'setTimeout(function(){ window.print(); }, 600);' +
-        '};' +
-      '<\/script>' +
-      '</body></html>';
-
-    var win = window.open('', '_blank', 'width=900,height=600');
-    win.document.write(html);
-    win.document.close();
+    cadena
+      .then(function () {
+        mostrarMsg('✓ ' + total + ' etiqueta' + (total !== 1 ? 's' : '') + ' impresa' + (total !== 1 ? 's' : ''), 'success');
+        $('#etq_btn_imprimir').prop('disabled', false);
+      })
+      .catch(function (e) {
+        mostrarMsg('Error: ' + e.message, 'danger');
+        $('#etq_btn_imprimir').prop('disabled', false);
+      });
   }
 
-  function htmlEsc(s) {
+  /* ── HTML de una etiqueta ───────────────── */
+  function htmlEtiqueta(p, anchoMM, altoMM) {
+    /* Generar SVG del código de barras */
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svgEl = document.createElementNS(svgNS, 'svg');
+    svgEl.setAttribute('xmlns', svgNS);
+    var bcOK = false;
+    try {
+      JsBarcode(svgEl, p.codigo, { format:'CODE128', width:1.4,
+        height:28, displayValue:false, margin:1 });
+      bcOK = true;
+    } catch (e) {}
+
+    var bcHtml = bcOK
+      ? '<div style="width:100%;text-align:center;">' + svgEl.outerHTML + '</div>'
+      : '';
+
+    var variante = [p.talle, p.color].filter(Boolean).join('  ');
+
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' +
+      '* { box-sizing:border-box; margin:0; padding:0; }' +
+      'body {' +
+        'width:'  + anchoMM + 'mm;' +
+        'height:' + altoMM  + 'mm;' +
+        'overflow:hidden; font-family:Arial,sans-serif;' +
+        'padding:1.5mm 2mm;' +
+        'display:flex; flex-direction:column; justify-content:space-between;' +
+      '}' +
+      '.bc svg { width:100%; height:auto; max-height:10mm; display:block; }' +
+      '.sku     { font-size:6pt;   color:#444; font-family:monospace; margin-top:0.5mm; }' +
+      '.nombre  { font-size:8pt;   font-weight:bold; color:#111; line-height:1.2; margin:1mm 0 0.5mm; }' +
+      '.variante{ font-size:6.5pt; color:#555; }' +
+      '.precio  { font-size:9.5pt; font-weight:bold; color:#000; }' +
+      '</style></head><body>' +
+      '<div class="bc">' + bcHtml + '</div>' +
+      '<div class="sku">'     + he(p.codigo)  + '</div>' +
+      '<div class="nombre">'  + he(p.nombre)  + '</div>' +
+      (variante ? '<div class="variante">' + he(variante) + '</div>' : '') +
+      '<div class="precio">$' + p.precio + '</div>' +
+      '</body></html>';
+  }
+
+  /* ── Helpers ────────────────────────────── */
+  function he(s) {
     return String(s || '')
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function mostrarMsg(txt, tipo) {
+    $('#etq_msg')
+      .removeClass('label-default label-info label-success label-warning label-danger')
+      .addClass('label-' + (tipo || 'default'))
+      .text(txt).show();
   }
 
 })();
