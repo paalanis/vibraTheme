@@ -20,7 +20,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
             WHERE p.nombre LIKE '$buscar' OR p.codigo LIKE '$buscar'
             ORDER BY p.nombre ASC
             LIMIT 100";
-    $rs  = mysqli_query($conexion, $sql);
+    $rs   = mysqli_query($conexion, $sql);
     $rows = [];
     while ($r = mysqli_fetch_assoc($rs)) {
         $rows[] = [
@@ -50,11 +50,11 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     <div class="col-sm-4">
       <div class="form-group form-group-sm" style="margin-bottom:0;">
         <label class="control-label">
-          <span id="etq_dot" style="font-size:16px; color:#d9534f; vertical-align:middle;">●</span>
+          <span id="etq_dot" style="font-size:16px;color:#d9534f;vertical-align:middle;">●</span>
           &nbsp;QZ Tray&nbsp;
         </label>
         <button type="button" class="btn btn-xs btn-default" id="etq_btn_conectar">Conectar</button>
-        <span id="etq_estado" class="text-muted" style="font-size:11px; margin-left:5px;">desconectado</span>
+        <span id="etq_estado" class="text-muted" style="font-size:11px;margin-left:5px;">desconectado</span>
       </div>
     </div>
 
@@ -110,10 +110,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
 
   <div class="row">
     <div class="col-lg-12">
-
-      <div id="etq_loading" class="text-center" style="display:none;">
-        <div class="loadingsm"></div>
-      </div>
+      <div id="etq_loading" class="text-center" style="display:none;"><div class="loadingsm"></div></div>
 
       <table class="table table-hover table-condensed table-bordered"
              id="etq_tabla" style="display:none;">
@@ -135,13 +132,50 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
   </div>
 </div>
 
-<!-- ===================================================================
-     Scripts
-=================================================================== -->
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray/qz-tray.js"></script>
 <script>
 (function () {
+
+  /* ── Certificado QZ Tray ─────────────────── */
+  var QZ_CERT = "-----BEGIN CERTIFICATE-----\n" +
+"MIIDYjCCAkqgAwIBAgIBADANBgkqhkiG9w0BAQUFADBKMRYwFAYDVQQDDA1WSUJS\n" +
+"QSBTaXN0ZW1hMQ4wDAYDVQQKDAVWSUJSQTELMAkGA1UEBhMCQVIxEzARBgNVBAgM\n" +
+"ClNvbWUtU3RhdGUwHhcNMjYwNTA2MTkxNTQ2WhcNMzYwNTAzMTkxNTQ2WjBKMRYw\n" +
+"FAYDVQQDDA1WSUJSQSBTaXN0ZW1hMQ4wDAYDVQQKDAVWSUJSQTELMAkGA1UEBhMC\n" +
+"QVIxEzARBgNVBAgMClNvbWUtU3RhdGUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw\n" +
+"ggEKAoIBAQDIBtEAGox8mQwpT08XSL/bi0ByaRTnl8IXB0faJe2ataHDdLjqLpzA\n" +
+"XNXOaPHu0GwoK5+PBNsqy4D9RFJKf9TlTlvH6lHif5GAPoElw5BYCnlWITEtQWep\n" +
+"YXPNOlGnVrtVMgY+Z4c3eq0YO4y4G+p8yCcN+XNtWtk0FllMZTIZsilaRoChpaDd\n" +
+"Rvb+Unyf8Fa5Jpm/pxEs4cyhylkmoqDifWjYlghHL4sC0kn7DRZOweBNt4uwHoVl\n" +
+"nkh38K8ojHTDfo2t0F5LT3IVLLi4pLZ+Uu2Gop7CZBgrVFpD5CIvjHcdb85wrPE6\n" +
+"TYducprkfm+XmKZRoGiaW3Xb1wTRPhb/AgMBAAGjUzBRMB0GA1UdDgQWBBTvRkfs\n" +
+"c4dWmbXG/tNnQpUKb6Tm6jAfBgNVHSMEGDAWgBTvRkfsc4dWmbXG/tNnQpUKb6Tm\n" +
+"6jAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBBQUAA4IBAQCqlho/rS8M5oUV\n" +
+"w5fbRrcrViK2E6weyB1M1yWawlkC9bs2f+G6ArqFwF4JwnYYWFFuG0NOgtbiDR7Y\n" +
+"1eC25oSRSo866wgt8O6po1XWcoSJi0C0vP5r3Z53oAPDmR3IoDXNC21CkOZBERhV\n" +
+"ojREH6XPAqTaQ8a8EygbQ3osGn9IbF5ATPHuagZD+8Gl7UFse7s8xORPWMD4nu/y\n" +
+"Y5eAgRgVQjjMCe6Fy0EjAsu2045IbHERVSSx8Aajb/zh061mle5nW/P6C5cQ/EES\n" +
+"HancoFyDa2NJBBIj8+XcH4XErQmwwl2aZ0Wzc1y+CHae49YUx/slN6HD959P5n7c\n" +
+"PjvqDwQH\n" +
+"-----END CERTIFICATE-----";
+
+  /* ── QZ: configurar certificado y firma ─── */
+  function setupQZSecurity() {
+    qz.security.setCertificatePromise(function (resolve) {
+      resolve(QZ_CERT);
+    });
+
+    qz.security.setSignatureAlgorithm("SHA512");
+
+    qz.security.setSignaturePromise(function (toSign) {
+      return function (resolve, reject) {
+        $.post('clases/nuevo/etiqueta_sign.php', { data: toSign })
+          .done(function (sig) { resolve(sig); })
+          .fail(function (err) { reject(err); });
+      };
+    });
+  }
 
   /* ── Estado QZ ──────────────────────────── */
   var conectado = false;
@@ -156,10 +190,11 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
 
   function conectar() {
     if (typeof qz === 'undefined') { setEstado(false, 'qz-tray.js no disponible'); return; }
+    setupQZSecurity();
     setEstado(false, 'conectando...');
     qz.websocket.connect()
       .then(function () { setEstado(true, 'conectado'); })
-      .catch(function (e) { setEstado(false, 'sin QZ Tray (' + e.message + ')'); });
+      .catch(function (e) { setEstado(false, 'sin QZ Tray — ' + e.message); });
   }
 
   $('#etq_btn_conectar').on('click', function () {
@@ -171,12 +206,8 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
   setTimeout(function () { if (typeof qz !== 'undefined') conectar(); }, 700);
 
   /* ── Tabla ──────────────────────────────── */
-  function contarSeleccionados() {
-    return $('#etq_tbody input[type=checkbox]:checked').length;
-  }
-  function refrescarBoton() {
-    $('#etq_btn_imprimir').prop('disabled', !conectado || contarSeleccionados() === 0);
-  }
+  function contarSeleccionados() { return $('#etq_tbody input[type=checkbox]:checked').length; }
+  function refrescarBoton() { $('#etq_btn_imprimir').prop('disabled', !conectado || contarSeleccionados() === 0); }
   function actualizarContador() {
     var n = contarSeleccionados();
     $('#etq_contador').text(n + ' producto' + (n !== 1 ? 's' : '') + ' seleccionado' + (n !== 1 ? 's' : ''));
@@ -198,10 +229,10 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
           ' data-precio="' + p.precio + '" data-color="' + esc(p.color) + '"' +
           ' data-talle="' + esc(p.talle) + '"></td>' +
         '<td style="vertical-align:middle;font-family:monospace;">' + esc(p.codigo) + '</td>' +
-        '<td style="vertical-align:middle;">' + esc(p.nombre) + '</td>' +
-        '<td style="vertical-align:middle;">' + esc(p.talle)  + '</td>' +
-        '<td style="vertical-align:middle;">' + esc(p.color)  + '</td>' +
-        '<td style="vertical-align:middle;">$' + p.precio + '</td>' +
+        '<td style="vertical-align:middle;">'  + esc(p.nombre) + '</td>' +
+        '<td style="vertical-align:middle;">'  + esc(p.talle)  + '</td>' +
+        '<td style="vertical-align:middle;">'  + esc(p.color)  + '</td>' +
+        '<td style="vertical-align:middle;">$' + p.precio      + '</td>' +
         '<td style="vertical-align:middle;">' +
           '<input type="number" class="form-control input-sm etq_qty"' +
           ' value="1" min="1" max="99" style="width:58px;"></td>' +
@@ -235,7 +266,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     $('.etq_chk').prop('checked', $(this).is(':checked')); actualizarContador();
   });
 
-  /* ── Imprimir con QZ Tray ───────────────── */
+  /* ── Imprimir ───────────────────────────── */
   $('#etq_btn_imprimir').on('click', function () {
     if (!conectado) { mostrarMsg('Conectá QZ Tray primero', 'warning'); return; }
     var items = [];
@@ -255,11 +286,11 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
   });
 
   function imprimirItems(items) {
-    var printer  = $('#etq_printer').val().trim() || 'XP-470B';
-    var anchoMM  = parseFloat($('#etq_ancho').val()) || 57;
-    var altoMM   = parseFloat($('#etq_alto').val())  || 32;
-    var anchoIn  = +(anchoMM / 25.4).toFixed(4);
-    var altoIn   = +(altoMM  / 25.4).toFixed(4);
+    var printer = $('#etq_printer').val().trim() || 'XP-470B';
+    var anchoMM = parseFloat($('#etq_ancho').val()) || 50;
+    var altoMM  = parseFloat($('#etq_alto').val())  || 30;
+    var anchoIn = +(anchoMM / 25.4).toFixed(4);
+    var altoIn  = +(altoMM  / 25.4).toFixed(4);
 
     var total = 0;
     items.forEach(function (p) { total += p.qty; });
@@ -268,15 +299,12 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     $('#etq_btn_imprimir').prop('disabled', true);
 
     var config = qz.configs.create(printer, {
-      size:         { width: anchoIn, height: altoIn },
-      units:        'in',
-      scaleContent: true,
-      colorType:    'blackwhite',
-      copies:       1
+      size: { width: anchoIn, height: altoIn },
+      units: 'in', scaleContent: true,
+      colorType: 'blackwhite', copies: 1
     });
 
-    /* Encadenamos un print() por cada unidad */
-    var cadena  = Promise.resolve();
+    var cadena = Promise.resolve();
     var enviados = 0;
 
     items.forEach(function (p) {
@@ -307,32 +335,24 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
 
   /* ── HTML de una etiqueta ───────────────── */
   function htmlEtiqueta(p, anchoMM, altoMM) {
-    /* Generar SVG del código de barras */
     var svgNS = 'http://www.w3.org/2000/svg';
     var svgEl = document.createElementNS(svgNS, 'svg');
     svgEl.setAttribute('xmlns', svgNS);
     var bcOK = false;
     try {
-      JsBarcode(svgEl, p.codigo, { format:'CODE128', width:1.4,
-        height:28, displayValue:false, margin:1 });
+      JsBarcode(svgEl, p.codigo, { format: 'CODE128', width: 1.4,
+        height: 28, displayValue: false, margin: 1 });
       bcOK = true;
     } catch (e) {}
 
-    var bcHtml = bcOK
-      ? '<div style="width:100%;text-align:center;">' + svgEl.outerHTML + '</div>'
-      : '';
-
+    var bcHtml   = bcOK ? '<div style="width:100%;text-align:center;">' + svgEl.outerHTML + '</div>' : '';
     var variante = [p.talle, p.color].filter(Boolean).join('  ');
 
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' +
       '* { box-sizing:border-box; margin:0; padding:0; }' +
-      'body {' +
-        'width:'  + anchoMM + 'mm;' +
-        'height:' + altoMM  + 'mm;' +
-        'overflow:hidden; font-family:Arial,sans-serif;' +
-        'padding:1.5mm 2mm;' +
-        'display:flex; flex-direction:column; justify-content:space-between;' +
-      '}' +
+      'body { width:' + anchoMM + 'mm; height:' + altoMM + 'mm;' +
+        'overflow:hidden; font-family:Arial,sans-serif; padding:1.5mm 2mm;' +
+        'display:flex; flex-direction:column; justify-content:space-between; }' +
       '.bc svg { width:100%; height:auto; max-height:10mm; display:block; }' +
       '.sku     { font-size:6pt;   color:#444; font-family:monospace; margin-top:0.5mm; }' +
       '.nombre  { font-size:8pt;   font-weight:bold; color:#111; line-height:1.2; margin:1mm 0 0.5mm; }' +
