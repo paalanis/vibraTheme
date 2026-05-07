@@ -50,7 +50,23 @@ try {
     }
     mysqli_stmt_close($stmt1);
 
-    // 3. Marca el remito como procesado.
+    // 3. Registra movimientos en tb_movimientos_stock (una fila por producto).
+    //    Se ejecuta ANTES de cambiar estado para que el WHERE estado='0' funcione.
+    $id_usuario = (int)($_SESSION['id_usuario'] ?? 0);
+    $stmt_mov = mysqli_prepare($conexion,
+        "INSERT INTO tb_movimientos_stock
+             (id_producto, tipo, cantidad, referencia_tipo, referencia_id, id_usuario, obs)
+         SELECT id_productos, 'entrada', cantidad, 'remito', id_remitos, ?, numero
+         FROM tb_remitos
+         WHERE estado = '0' AND numero = ? AND id_proveedores = ?"
+    );
+    mysqli_stmt_bind_param($stmt_mov, 'isi', $id_usuario, $remito, $proveedor);
+    if (!mysqli_stmt_execute($stmt_mov)) {
+        throw new Exception('Error registrando movimientos de stock');
+    }
+    mysqli_stmt_close($stmt_mov);
+
+    // 5. Marca el remito como procesado.
     $stmt2 = mysqli_prepare($conexion,
         "UPDATE tb_remitos SET estado = '1'
          WHERE estado = '0' AND numero = ? AND id_proveedores = ?"

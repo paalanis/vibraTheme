@@ -120,6 +120,12 @@ if ($found_cierre && $id_cierre_val) {
                 <li><a href="#" class="menu" title="nuevo_rubro" onmouseup="cerrar()">Rubros</a></li>
               </ul>
             </li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Configuración <span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu">
+                <li><a href="#" class="menu" title="nuevo_configuracion" onmouseup="cerrar()">Parámetros por sucursal</a></li>
+              </ul>
+            </li>
           ';}?>                
           </ul>
 
