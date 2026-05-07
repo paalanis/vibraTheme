@@ -13,8 +13,7 @@ $rubro    = (int)($_REQUEST['dato_rubro']    ?? 0);
 $estado   = $_REQUEST['dato_estado'] ?? 'todos';
 
 // Lee stock_minimo de tb_configuracion.
-// try-catch necesario: PHP 8.1+ lanza mysqli_sql_exception en lugar de retornar false
-// cuando el usuario DB no tiene permisos o la tabla no existe.
+// try-catch: PHP 8.1+ lanza excepción cuando el usuario DB no tiene permisos.
 $stock_minimo = 5;
 try {
     $stmt_cfg = mysqli_prepare($conexion,
@@ -28,11 +27,11 @@ try {
     }
     mysqli_stmt_close($stmt_cfg);
 } catch (\Throwable $e) {
-    $stock_minimo = 5; // default si tb_configuracion no es accesible
+    $stock_minimo = 5;
 }
 
-// Query principal: parte de tb_productos (LEFT JOIN) para incluir productos sin movimientos
-$where = ["1=1"];
+// Construye query: parte de tb_productos para incluir productos sin movimientos
+$where  = ["1=1"];
 $params = [];
 $types  = '';
 
@@ -52,21 +51,26 @@ $where_sql = implode(' AND ', $where);
 $stmt = mysqli_prepare($conexion,
     "SELECT
         p.id_productos,
-        p.nombre                        AS producto,
-        r.nombre                        AS rubro,
-        COALESCE(e.cantidad, 0)         AS cantidad,
-        COALESCE(p.precio_costo, 0)     AS precio_costo,
-        COALESCE(p.precio_venta, 0)     AS precio_venta
+        p.nombre,
+        r.nombre                    AS rubro,
+        COALESCE(e.cantidad, 0)     AS cantidad,
+        COALESCE(p.precio_costo, 0) AS precio_costo,
+        COALESCE(p.precio_venta, 0) AS precio_venta
      FROM tb_productos p
      LEFT JOIN tb_existencias e ON e.id_productos = p.id_productos
-     LEFT JOIN tb_rubro r ON r.id_rubro = p.id_rubro
+     LEFT JOIN tb_rubro r       ON r.id_rubro = p.id_rubro
      WHERE $where_sql
      ORDER BY p.nombre ASC"
 );
 
 if (!empty($params)) {
-    mysqli_stmt_bind_param($stmt, $types, ...$params);
+    // call_user_func_array para evitar el problema de by-ref con spread operator
+    $bind_args = array_merge([$stmt, $types], $params);
+    $refs = [];
+    foreach ($bind_args as $k => $v) { $refs[$k] = &$bind_args[$k]; }
+    call_user_func_array('mysqli_stmt_bind_param', $refs);
 }
+
 mysqli_stmt_execute($stmt);
 mysqli_stmt_bind_result($stmt, $r_id, $r_producto, $r_rubro, $r_cantidad, $r_costo, $r_venta);
 
@@ -83,15 +87,14 @@ while (mysqli_stmt_fetch($stmt)) {
 }
 mysqli_stmt_close($stmt);
 
-// Filtro por estado de stock (post-query)
+// Filtro post-query por estado de stock
 if ($estado !== 'todos') {
-    $datos = array_filter($datos, function($d) use ($estado, $stock_minimo) {
+    $datos = array_values(array_filter($datos, function($d) use ($estado, $stock_minimo) {
         if ($estado === 'sin_stock') return $d['cantidad'] <= 0;
         if ($estado === 'bajo')      return $d['cantidad'] > 0 && $d['cantidad'] <= $stock_minimo;
         if ($estado === 'ok')        return $d['cantidad'] > $stock_minimo;
         return true;
-    });
-    $datos = array_values($datos);
+    }));
 }
 
 // Export CSV
@@ -99,7 +102,7 @@ if (isset($_POST['export_data'])) {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="reporte_stock.csv"');
     $out = fopen('php://output', 'w');
-    fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8 para Excel
+    fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
     fputcsv($out, ['Producto','Rubro','Stock','Precio Costo','Precio Venta','Margen %'], ';');
     foreach ($datos as $d) {
         $margen = $d['venta'] > 0
@@ -115,47 +118,55 @@ if (isset($_POST['export_data'])) {
 }
 
 // Totales
-$total_productos  = count($datos);
-$total_valor_costo = array_sum(array_map(fn($d) => $d['cantidad'] * $d['costo'], $datos));
-$sin_stock        = count(array_filter($datos, fn($d) => $d['cantidad'] <= 0));
-$stock_bajo       = count(array_filter($datos, fn($d) => $d['cantidad'] > 0 && $d['cantidad'] <= $stock_minimo));
+$total_productos   = count($datos);
+$total_valor_costo = 0;
+$sin_stock         = 0;
+$stock_bajo        = 0;
+foreach ($datos as $d) {
+    $total_valor_costo += $d['cantidad'] * $d['costo'];
+    if ($d['cantidad'] <= 0)                                      $sin_stock++;
+    elseif ($d['cantidad'] <= $stock_minimo)                      $stock_bajo++;
+}
 
-// Helper: clase y etiqueta según stock
+// Helper: clase Bootstrap y etiqueta según stock
 function stock_clase($cantidad, $minimo) {
-    if ($cantidad <= 0)     return ['danger',  'Sin stock'];
-    if ($cantidad <= $minimo) return ['warning', 'Stock bajo'];
-    return ['success', 'OK'];
+    if ($cantidad <= 0)       return array('danger',  'Sin stock');
+    if ($cantidad <= $minimo) return array('warning', 'Stock bajo');
+    return array('success', 'OK');
 }
 ?>
 
 <?php if (empty($datos)): ?>
-  <div class="alert alert-info" style="margin:16px 0">No hay productos que coincidan con los filtros.</div>
-  <script>document.getElementById("botonExcel1").style.visibility = "hidden";</script>
+  <div class="alert alert-info" style="margin:16px 0">
+    No hay productos que coincidan con los filtros.
+  </div>
 <?php else: ?>
 
-<!-- Resumen -->
+<!-- Cards resumen -->
 <div class="row" style="margin:16px 0">
   <div class="col-lg-3">
     <div class="panel panel-default text-center" style="padding:10px">
-      <div style="font-size:22px; font-weight:bold"><?php echo $total_productos; ?></div>
+      <div style="font-size:22px;font-weight:bold"><?php echo $total_productos; ?></div>
       <small class="text-muted">Productos</small>
     </div>
   </div>
   <div class="col-lg-3">
     <div class="panel panel-danger text-center" style="padding:10px">
-      <div style="font-size:22px; font-weight:bold; color:#c0392b"><?php echo $sin_stock; ?></div>
+      <div style="font-size:22px;font-weight:bold;color:#c0392b"><?php echo $sin_stock; ?></div>
       <small class="text-muted">Sin stock</small>
     </div>
   </div>
   <div class="col-lg-3">
     <div class="panel panel-warning text-center" style="padding:10px">
-      <div style="font-size:22px; font-weight:bold; color:#e67e22"><?php echo $stock_bajo; ?></div>
+      <div style="font-size:22px;font-weight:bold;color:#e67e22"><?php echo $stock_bajo; ?></div>
       <small class="text-muted">Stock bajo (≤<?php echo $stock_minimo; ?>)</small>
     </div>
   </div>
   <div class="col-lg-3">
     <div class="panel panel-default text-center" style="padding:10px">
-      <div style="font-size:18px; font-weight:bold">$<?php echo number_format($total_valor_costo, 2, ',', '.'); ?></div>
+      <div style="font-size:18px;font-weight:bold">
+        $<?php echo number_format($total_valor_costo, 2, ',', '.'); ?>
+      </div>
       <small class="text-muted">Valor stock a costo</small>
     </div>
   </div>
@@ -163,7 +174,7 @@ function stock_clase($cantidad, $minimo) {
 
 <!-- Tabla -->
 <div class="panel panel-default">
-  <div class="panel-body" style="overflow-y:auto; max-height:400px; padding:0">
+  <div class="panel-body" style="overflow-y:auto;max-height:400px;padding:0">
     <table class="table table-striped table-hover table-condensed" style="margin:0">
       <thead>
         <tr class="active">
@@ -178,7 +189,9 @@ function stock_clase($cantidad, $minimo) {
       </thead>
       <tbody>
         <?php foreach ($datos as $d):
-          [$clase, $etiqueta] = stock_clase($d['cantidad'], $stock_minimo);
+          $sc     = stock_clase($d['cantidad'], $stock_minimo);
+          $clase  = $sc[0];
+          $etiq   = $sc[1];
           $margen = $d['venta'] > 0
               ? round((($d['venta'] - $d['costo']) / $d['venta']) * 100, 1)
               : 0;
@@ -187,11 +200,11 @@ function stock_clase($cantidad, $minimo) {
           <td><?php echo htmlspecialchars($d['producto']); ?></td>
           <td><?php echo htmlspecialchars($d['rubro']); ?></td>
           <td style="text-align:right"><?php echo number_format($d['cantidad'], 2, ',', '.'); ?></td>
-          <td style="text-align:right">$<?php echo number_format($d['costo'], 2, ',', '.'); ?></td>
-          <td style="text-align:right">$<?php echo number_format($d['venta'], 2, ',', '.'); ?></td>
+          <td style="text-align:right">$<?php echo number_format($d['costo'],    2, ',', '.'); ?></td>
+          <td style="text-align:right">$<?php echo number_format($d['venta'],    2, ',', '.'); ?></td>
           <td style="text-align:right"><?php echo $margen; ?>%</td>
           <td style="text-align:center">
-            <span class="label label-<?php echo $clase; ?>"><?php echo $etiqueta; ?></span>
+            <span class="label label-<?php echo $clase; ?>"><?php echo $etiq; ?></span>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -200,19 +213,16 @@ function stock_clase($cantidad, $minimo) {
   </div>
 </div>
 
-<script>document.getElementById("botonExcel1").style.visibility = "visible";</script>
-
-<?php endif; ?>
-
-<form method="post" id="form_export">
+<!-- Descarga CSV -->
+<form method="post">
   <input type="hidden" name="dato_producto" value="<?php echo $producto; ?>">
   <input type="hidden" name="dato_rubro"    value="<?php echo $rubro; ?>">
   <input type="hidden" name="dato_estado"   value="<?php echo htmlspecialchars($estado); ?>">
-  <div class="modal-footer">
-    <div align="right">
-      <button type="submit" class="btn btn-info" id="botonExcel1" name="export_data" value="1">
-        <span class="glyphicon glyphicon-save"></span> Descargar CSV
-      </button>
-    </div>
+  <div style="text-align:right;margin-top:10px">
+    <button type="submit" class="btn btn-info" name="export_data" value="1">
+      <span class="glyphicon glyphicon-save"></span> Descargar CSV
+    </button>
   </div>
 </form>
+
+<?php endif; ?>
