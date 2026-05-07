@@ -12,7 +12,7 @@ $clave       = $_POST['clave']             ?? '';
 $valor       = $_POST['valor']             ?? '0';
 
 // Claves permitidas — whitelist para evitar escritura arbitraria
-$claves_validas = ['permite_venta_sin_stock'];
+$claves_validas = ['permite_venta_sin_stock', 'stock_minimo'];
 
 if ($id_sucursal <= 0 || !in_array($clave, $claves_validas, true)) {
     echo json_encode(['success' => 'false', 'error' => 'Parámetro inválido']); exit();

@@ -11,7 +11,14 @@ $parametros = [
     'permite_venta_sin_stock' => [
         'etiqueta'  => 'Permitir venta con stock insuficiente',
         'detalle'   => 'Si está activo, el sistema permite confirmar ventas aunque no haya stock disponible.',
+        'tipo'      => 'bool',
         'default'   => '0',
+    ],
+    'stock_minimo' => [
+        'etiqueta'  => 'Stock mínimo (alerta amarilla)',
+        'detalle'   => 'Cantidad por debajo de la cual un producto se marca como stock bajo.',
+        'tipo'      => 'number',
+        'default'   => '5',
     ],
 ];
 
@@ -62,7 +69,7 @@ $csrf = csrf_token();
               <tbody>
                 <?php foreach ($parametros as $clave => $param):
                   $valor_actual = $suc['config'][$clave] ?? $param['default'];
-                  $checked = ($valor_actual === '1') ? 'checked' : '';
+                  $tipo = $param['tipo'];
                 ?>
                 <tr>
                   <td style="vertical-align:middle; width:60%">
@@ -70,9 +77,11 @@ $csrf = csrf_token();
                     <br><small class="text-muted"><?php echo htmlspecialchars($param['detalle']); ?></small>
                   </td>
                   <td style="vertical-align:middle; text-align:center">
+                    <?php if ($tipo === 'bool'): $checked = ($valor_actual === '1') ? 'checked' : ''; ?>
                     <label class="switch-label">
                       <input type="checkbox"
                              class="config-toggle"
+                             data-tipo="bool"
                              data-sucursal="<?php echo $id_suc; ?>"
                              data-clave="<?php echo htmlspecialchars($clave); ?>"
                              data-csrf="<?php echo $csrf; ?>"
@@ -81,8 +90,20 @@ $csrf = csrf_token();
                         <?php echo $checked ? 'Activo' : 'Inactivo'; ?>
                       </span>
                     </label>
+                    <?php elseif ($tipo === 'number'): ?>
+                    <div class="input-group" style="width:120px; display:inline-table">
+                      <input type="number"
+                             class="form-control config-number"
+                             min="0" step="1"
+                             value="<?php echo (int)$valor_actual; ?>"
+                             data-tipo="number"
+                             data-sucursal="<?php echo $id_suc; ?>"
+                             data-clave="<?php echo htmlspecialchars($clave); ?>"
+                             data-csrf="<?php echo $csrf; ?>">
+                    </div>
+                    <?php endif; ?>
                   </td>
-                  <td style="vertical-align:middle; width:100px" class="toggle-feedback-<?php echo $id_suc; ?>-<?php echo $clave; ?>">
+                  <td style="vertical-align:middle; width:120px" class="toggle-feedback-<?php echo $id_suc; ?>-<?php echo $clave; ?>">
                   </td>
                 </tr>
                 <?php endforeach; ?>
@@ -100,6 +121,7 @@ $csrf = csrf_token();
 
 <script type="text/javascript">
 $(function() {
+  // Toggle bool
   $('.config-toggle').on('change', function() {
     var $cb       = $(this);
     var sucursal  = $cb.data('sucursal');
@@ -125,12 +147,44 @@ $(function() {
           setTimeout(function() { $feedback.html(''); }, 2000);
         } else {
           $feedback.html('<span class="text-danger"><small>Error</small></span>');
-          $cb.prop('checked', !$cb.is(':checked')); // revertir
+          $cb.prop('checked', !$cb.is(':checked'));
         }
       },
       error: function() {
         $feedback.html('<span class="text-danger"><small>Error de red</small></span>');
         $cb.prop('checked', !$cb.is(':checked'));
+      }
+    });
+  });
+
+  // Input numérico — guarda al salir del campo (blur)
+  var numberTimer = {};
+  $('.config-number').on('blur', function() {
+    var $inp     = $(this);
+    var sucursal = $inp.data('sucursal');
+    var clave    = $inp.data('clave');
+    var valor    = parseInt($inp.val()) || 0;
+    var csrf     = $inp.data('csrf');
+    var $feedback = $('.toggle-feedback-' + sucursal + '-' + clave);
+
+    if (valor < 0) { $inp.val(0); valor = 0; }
+    $feedback.html('<span class="text-muted"><small>Guardando...</small></span>');
+
+    $.ajax({
+      url      : 'clases/guardar/configuracion.php',
+      type     : 'post',
+      dataType : 'json',
+      data     : {id_sucursal: sucursal, clave: clave, valor: valor, csrf_token: csrf},
+      success  : function(data) {
+        if (data.success === 'true') {
+          $feedback.html('<span class="text-success"><small>✓ Guardado</small></span>');
+          setTimeout(function() { $feedback.html(''); }, 2000);
+        } else {
+          $feedback.html('<span class="text-danger"><small>Error</small></span>');
+        }
+      },
+      error: function() {
+        $feedback.html('<span class="text-danger"><small>Error de red</small></span>');
       }
     });
   });
