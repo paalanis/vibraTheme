@@ -13,6 +13,10 @@ if (mysqli_connect_errno()) {
 $remito    = $_REQUEST['remito']    ?? '';
 $proveedor = (int)($_REQUEST['proveedor'] ?? 0);
 
+// Normalizar sucursal: el JS envía "0001-00000001" pero la BD tiene "1-00000001"
+$parts  = explode('-', $remito, 2);
+$remito = (count($parts) === 2) ? ((int)$parts[0]) . '-' . $parts[1] : $remito;
+
 $stmt = mysqli_prepare($conexion,
     "SELECT
        tb_remitos.id_remitos  AS id,
