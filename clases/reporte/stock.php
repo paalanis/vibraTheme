@@ -12,16 +12,19 @@ $producto = (int)($_REQUEST['dato_producto'] ?? 0);
 $rubro    = (int)($_REQUEST['dato_rubro']    ?? 0);
 $estado   = $_REQUEST['dato_estado'] ?? 'todos';
 
-// Lee stock_minimo de tb_configuracion (primer sucursal activa o global)
-// Si no hay fila, usa 5 como default.
+// Lee stock_minimo de tb_configuracion.
+// Si la tabla no existe o el usuario no tiene permisos, usa 5 como default.
+$stock_minimo = 5;
 $stmt_cfg = mysqli_prepare($conexion,
     "SELECT MIN(CAST(valor AS UNSIGNED)) FROM tb_configuracion WHERE clave = 'stock_minimo'"
 );
-mysqli_stmt_execute($stmt_cfg);
-mysqli_stmt_bind_result($stmt_cfg, $cfg_min);
-mysqli_stmt_fetch($stmt_cfg);
-$stock_minimo = ($cfg_min !== null && $cfg_min > 0) ? (int)$cfg_min : 5;
-mysqli_stmt_close($stmt_cfg);
+if ($stmt_cfg) {
+    mysqli_stmt_execute($stmt_cfg);
+    mysqli_stmt_bind_result($stmt_cfg, $cfg_min);
+    mysqli_stmt_fetch($stmt_cfg);
+    $stock_minimo = ($cfg_min !== null && $cfg_min > 0) ? (int)$cfg_min : 5;
+    mysqli_stmt_close($stmt_cfg);
+}
 
 // Query principal: parte de tb_productos (LEFT JOIN) para incluir productos sin movimientos
 $where = ["1=1"];
