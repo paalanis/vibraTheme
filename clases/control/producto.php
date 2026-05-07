@@ -75,7 +75,7 @@ mysqli_stmt_close($stmt);
                id="dato_cantidad" type="number" min="1" step="1" required>
     </div>
 </div>
-<div class="col-lg-3">
+<div class="col-lg-4">
     <div class="input-group">
         <span class="input-group-addon">$ costo</span>
         <input class="form-control" autocomplete="off" value=""
