@@ -69,14 +69,18 @@ mysqli_stmt_close($stmt);
     </select>
 </div>
 <div class="col-lg-2">
-    <input class="form-control" autocomplete="off" value="1"
-           placeholder="Cant." id="dato_cantidad"
-           type="number" min="0.001" step="0.001" required>
+    <div class="input-group">
+        <span class="input-group-addon">Cant.</span>
+        <input class="form-control" autocomplete="off" value="1"
+               id="dato_cantidad" type="number" min="1" step="1" required>
+    </div>
 </div>
 <div class="col-lg-2">
-    <input class="form-control" autocomplete="off" value=""
-           placeholder="$ costo" id="dato_precio"
-           type="number" min="0" step="0.01">
+    <div class="input-group">
+        <span class="input-group-addon">$ costo</span>
+        <input class="form-control" autocomplete="off" value=""
+               id="dato_precio" type="number" min="0" step="0.01">
+    </div>
 </div>
 <div class="col-lg-3">
     <!-- type=submit dispara onsubmit del formulario → carga('producto') -->

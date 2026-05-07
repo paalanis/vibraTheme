@@ -106,10 +106,6 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
 
 </div>
 
-<div class="row">
-  <fieldset id="div_remitos"></fieldset>
-</div>
-
   <div class="modal-footer">
         <div class="form-group form-group-sm">
         <div class="col-lg-7">
@@ -124,6 +120,12 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
       </div>
   </div>
 </form>
+
+<!-- div_remitos FUERA del form: los botones sin id de remitoinsumo.php
+     no interfieren con fx.js carga() que itera :input dentro de #formulario_nuevo -->
+<div class="row">
+  <fieldset id="div_remitos"></fieldset>
+</div>
 
 <script type="text/javascript">
   $(document).ready(function () {
