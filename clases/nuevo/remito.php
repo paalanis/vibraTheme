@@ -196,6 +196,59 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
           success  : function(data) {
             if (data.success === 'true') {
               $('#remito-ok').html('<span class="glyphicon glyphicon-ok" style="line-height:28px"></span>');
+              $('#boton_producto').prop('disabled', false);
+
+            } else if (data.success === 'borrador') {
+              var remito    = $('#dato_sucursal').val() + '-' + $('#dato_remito').val();
+              var proveedor = $('#dato_proveedor').val();
+              $('#remito-ok').html('<span class="glyphicon glyphicon-ok" style="line-height:28px"></span>');
+              // Carga la lista en borrador inmediatamente
+              $('#div_remitos').load('clases/nuevo/remitoinsumo.php',
+                {remito: remito, proveedor: proveedor});
+              $('#boton_guardar').prop('disabled', false);
+              $('#boton_producto').prop('disabled', false);
+              // Bloquea cabecera igual que al cargar el primer producto
+              $('#dato_proveedor').prop('disabled', true);
+              $('#dato_sucursal').prop('disabled', true);
+              $('#dato_remito').prop('disabled', true);
+              // Aviso con opciones
+              $('#div_duplicado').html(
+                '<div class="alert alert-warning alert-dismissible" role="alert" id="alerta_borrador">' +
+                '<strong>Este remito tiene ' + data.cant + ' producto(s) en borrador.</strong> ' +
+                '<button type="button" class="btn btn-xs btn-default" id="btn_continuar_borrador" style="margin-left:8px">Continuar borrador</button> ' +
+                '<button type="button" class="btn btn-xs btn-danger"  id="btn_descartar_borrador" style="margin-left:4px">Descartar y empezar de cero</button>' +
+                '</div>'
+              );
+              // Continuar: solo cierra el aviso
+              $('#btn_continuar_borrador').click(function() {
+                $('#alerta_borrador').alert('close');
+              });
+              // Descartar: borra el borrador y resetea
+              $('#btn_descartar_borrador').click(function() {
+                $.ajax({
+                  url      : 'clases/elimina/remito-borrador.php',
+                  data     : {remito: remito, proveedor: proveedor,
+                              csrf_token: '<?php echo csrf_token(); ?>'},
+                  dataType : 'json',
+                  type     : 'post',
+                  success  : function(r) {
+                    if (r.success === 'true') {
+                      $('#div_remitos').html('');
+                      $('#alerta_borrador').alert('close');
+                      $('#boton_guardar').prop('disabled', true);
+                      $('#dato_proveedor').prop('disabled', false);
+                      $('#dato_sucursal').prop('disabled', false);
+                      $('#dato_remito').prop('disabled', false);
+                      $('#dato_remito').val('');
+                      $('#remito-ok').html('');
+                      $('#dato_sucursal').focus();
+                    } else {
+                      alert('Error al descartar. Reintente.');
+                    }
+                  }
+                });
+              });
+
             } else {
               $('#remito-ok').html('<span class="glyphicon glyphicon-remove" style="line-height:28px"></span>');
               $('#dato_remito').val('');

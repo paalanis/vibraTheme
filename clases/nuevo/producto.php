@@ -1,228 +1,217 @@
 <?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-header("Location: ../../index.php");
+    header("Location: ../../../index.php");
 }
-include '../../conexion/conexion.php';
+require_once '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-printf("La conexión con el servidor de base de datos falló comuniquese con su administrador: %s\n", mysqli_connect_error());
-exit();
+    printf("La conexión con el servidor de base de datos falló: %s\n", mysqli_connect_error());
+    exit();
 }
-$sqlrubro = "SELECT
-tb_rubro.id_rubro as id_rubro,
-tb_rubro.nombre as nombre
-FROM
-tb_rubro
-ORDER BY
-nombre ASC";
-$rsrubro = mysqli_query($conexion, $sqlrubro); 
-$sqltalle = "SELECT
-tb_talle.id_talle as id_talle,
-tb_talle.nombre as nombre
-FROM
-tb_talle
-ORDER BY
-nombre ASC";
-$rstalle = mysqli_query($conexion, $sqltalle);
-$sqliva = "SELECT
-tb_iva_condicion.id_iva_condicion as id_iva,
-tb_iva_condicion.nombre as nombre
-FROM
-tb_iva_condicion
-ORDER BY
-nombre ASC";
-$rsiva = mysqli_query($conexion, $sqliva);
-// $sqlclub = "SELECT
-// tb_club.id_club as id_club,
-// tb_club.nombre as nombre
-// FROM
-// tb_club
-// ORDER BY
-// nombre ASC";
-// $rsclub = mysqli_query($conexion, $sqlclub);   
+
+$codigo = $_REQUEST['codigo'] ?? '';
+$modo   = $_REQUEST['buscar_modo'] ?? 'venta'; // 'remito' | 'venta'
+$buscar = trim('%' . $codigo . '%');
+
+// En modo remito también traemos precio_costo.
+$stmt = mysqli_prepare($conexion,
+    "SELECT
+        tb_productos.id_productos              AS id,
+        tb_productos.codigo                    AS codigo2,
+        tb_productos.nombre                    AS producto,
+        IF(tb_productos.id_rubro > 1,'false','true') AS rubro,
+        tb_productos.precio_venta              AS precio_venta,
+        tb_productos.precio_costo              AS precio_costo
+     FROM tb_productos
+     WHERE CONCAT(tb_productos.nombre, tb_productos.codigo) LIKE ?
+     ORDER BY tb_productos.nombre ASC"
+);
+mysqli_stmt_bind_param($stmt, 's', $buscar);
+mysqli_stmt_execute($stmt);
+mysqli_stmt_bind_result($stmt, $r_id, $r_codigo, $r_nombre, $r_rubro, $r_precio_venta, $r_precio_costo);
+
+$filas       = 0;
+$lista       = [];   // codigo => precio_venta  (modo venta)
+$listacosto  = [];   // codigo => precio_costo  (modo remito)
+$campoprecio = [];   // codigo => rubro flag
+$rows        = [];
+
+while (mysqli_stmt_fetch($stmt)) {
+    $filas++;
+    $lista[$r_codigo]       = $r_precio_venta;
+    $listacosto[$r_codigo]  = $r_precio_costo;
+    $campoprecio[$r_codigo] = $r_rubro;
+    $rows[] = [
+        'id'      => $r_id,
+        'codigo'  => $r_codigo,
+        'nombre'  => $r_nombre,
+        'rubro'   => $r_rubro,
+        'pventa'  => $r_precio_venta,
+        'pcosto'  => $r_precio_costo,
+    ];
+}
+mysqli_stmt_close($stmt);
 ?>
-<form class="form-horizontal" role="form" id="formulario_nuevo" onsubmit="event.preventDefault(); nuevo('producto')">
- 
- <div class="modal-header">
-   <h4 class="modal-title">Agregar Producto</h4>
+
+<?php if ($modo === 'remito'): ?>
+<!-- ── MODO REMITO: cantidad + precio_costo editable ──────────── -->
+<div class="col-lg-4">
+    <select class="form-control" id="dato_producto" required>
+        <option value="">Seleccione producto</option>
+        <?php foreach ($rows as $row): ?>
+            <option value="<?php echo $row['codigo']; ?>">
+                <?php echo mb_convert_encoding($row['nombre'], 'UTF-8', 'ISO-8859-1'); ?>
+            </option>
+        <?php endforeach; ?>
+        <?php if ($filas === 0): ?>
+            <option value="">NO EXISTE EL PRODUCTO</option>
+        <?php endif; ?>
+    </select>
 </div>
-<br>
-
- <div class="well bs-component">
- <div class="row">
- <div class="col-lg-2"></div>
- <div class="col-lg-7">
-   <fieldset>
-      <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Nombre</label>
-        <div class="col-lg-9">
-          <input type="text" class="form-control" autocomplete="off" id="dato_nombre" aria-describedby="basic-addon1" required autofocus="">
-        </div>
-      </div>
-      <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Descripción</label>
-        <div class="col-lg-9">
-          <textarea class="form-control" autocomplete="off" rows="1" id="dato_descripcion"></textarea>
-        </div>
-      </div>
-      <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Talle</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_talle" required>   
-              <option value=""></option>
-              <?php
-              while ($sql_talle = mysqli_fetch_assoc($rstalle)){
-                $idtalle= $sql_talle['id_talle'];
-                $talle = $sql_talle['nombre'];
-
-                echo utf8_encode('<option value='.$idtalle.'>'.$talle.'</option>');
-                
-              }
-              ?>
-            </select>
-        </div>
-      </div>
-      <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Color</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_color">   
-              <option value=""></option>
-              <option value="Amarillo">Amarillo</option>
-              <option value="Azul">Azul</option>
-              <option value="Blanco">Blanco</option>
-              <option value="Celeste">Celeste</option>
-              <option value="Negro">Negro</option>
-              <option value="Rojo">Rojo</option>
-              <option value="Otros">Otros</option>
-            </select>
-        </div>
-      </div>
-      <!-- <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Club</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_club" required>   
-              <option value=""></option>
-              <?php
-              while ($sql_club = mysqli_fetch_assoc($rsclub)){
-                $idclub= $sql_club['id_club'];
-                $club = $sql_club['nombre'];
-
-                echo utf8_encode('<option value='.$idclub.'>'.$club.'</option>');
-                
-              }
-              ?>
-            </select>
-        </div>
-      </div> -->
-
-      <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Precio costo</label>
-        <div class="col-lg-9">
-          <input type="text" class="form-control" autocomplete="off" id="dato_costo" aria-describedby="basic-addon1" required>
-        </div>
-      </div>
-      <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Precio venta</label>
-        <div class="col-lg-9">
-          <input type="text" class="form-control" autocomplete="off" id="dato_venta" aria-describedby="basic-addon1" required>
-        </div>
-      </div>
-      <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Foto</label>
-        <div class="col-lg-9">
-         <!--  <input type="text" class="form-control" autocomplete="off" id="dato_nombre" aria-describedby="basic-addon1" required> -->
-        </div>
-      </div>
-      <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Rubro</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_rubro" required>   
-              <option value=""></option>
-              <?php
-              while ($sql_rubro = mysqli_fetch_assoc($rsrubro)){
-                $idrubro= $sql_rubro['id_rubro'];
-                $rubro = $sql_rubro['nombre'];
-
-                echo utf8_encode('<option value='.$idrubro.'>'.$rubro.'</option>');
-                
-              }
-              ?>
-            </select>
-        </div>
-      </div>      
-      <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">IVA</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_iva" required>   
-              <option value=""></option>
-              <?php
-              while ($sql_iva = mysqli_fetch_assoc($rsiva)){
-                $idiva= $sql_iva['id_iva'];
-                $iva = $sql_iva['nombre'];
-
-                echo utf8_encode('<option value='.$idiva.'>'.$iva.'</option>');
-                
-              }
-              ?>
-            </select>
-        </div>
-      </div>
-      <div class="form-group form-group-sm">
-        <label for="inputPassword" class="col-lg-3 control-label">Codigo</label>
-        <div class="col-lg-9">
-          <input type="text" class="form-control" autocomplete="off" id="dato_codigo" aria-describedby="basic-addon1" required>
-        </div>
-      </div>
-      
-      <!-- <div align="right">
-      <h3><span class="label label-default">Uso exclusivo para productos que pasen por balanza</span></h3>
-      </div>
-      
-      <div class="form-group form-group-sm">
-        <label  class="col-lg-3 control-label">Pesable en balanza</label>
-        <div class="col-lg-9">
-          <select class="form-control" id="dato_pesable">   
-             <option value="1"></option>
-             <option value="1">SI</option>
-             <option value="0">NO</option>
-            </select>
-        </div>
-      </div>-->
-
-   </fieldset>
- 
- </div>
- <div class="col-lg-3"></div>
-
- 
-
- </div>  
- </div>
-
-   <div class="modal-footer">
-        <div class="form-group form-group-sm">
-        <div class="col-lg-7">
-          <div align="center" id="div_mensaje_general">
-          </div>
-        </div>
-        <div class="col-lg-5">
-          <div align="right">
-          <button type="button" id="boton_salir" onclick="inicio()" class="btn btn-default">Salir</button>
-          <button type="submit" id="boton_guardar" class="btn btn-primary">Guardar</button>  
-          </div>
-        </div>
-      </div>  
-  </div>
-
-
- </form>
+<div class="col-lg-3">
+    <div class="input-group">
+        <span class="input-group-addon">Cant.</span>
+        <input class="form-control" autocomplete="off" value="1"
+               id="dato_cantidad" type="number" min="1" step="1" required>
+    </div>
+</div>
+<div class="col-lg-4">
+    <div class="input-group">
+        <span class="input-group-addon">$ costo</span>
+        <input class="form-control" autocomplete="off" value=""
+               id="dato_precio" type="number" min="0" step="0.01">
+    </div>
+</div>
+<div class="col-lg-1">
+    <!-- type=submit dispara onsubmit del formulario → carga('producto') -->
+    <button type="submit" id="boton_producto" class="btn btn-success" disabled>
+        Cargar
+    </button>
+</div>
 
 <script type="text/javascript">
+(function() {
+    var costos = <?php echo json_encode($listacosto); ?>;
 
- $(document).ready(function () {
-  $('#dato_venta').mask("##.00", {reverse: true});
-  $('#dato_costo').mask("##.00", {reverse: true});
-  });
-
-
+    $('#dato_producto').change(function() {
+        var cod = $(this).val();
+        if (cod !== '') {
+            $('#dato_precio').val(costos[cod] || '');
+            $('#boton_producto').prop('disabled', false);
+            $('#dato_cantidad').focus();
+        } else {
+            $('#dato_precio').val('');
+            $('#boton_producto').prop('disabled', true);
+        }
+    });
+})();
 </script>
+
+<?php else: ?>
+<!-- ── MODO VENTA: comportamiento original ────────────────────── -->
+<div class="col-lg-7">
+    <select class="form-control" id="dato_producto" required>
+        <option value="">Seleccione producto</option>
+        <?php foreach ($rows as $row): ?>
+            <option value="<?php echo $row['codigo']; ?>">
+                <?php echo utf8_encode($row['nombre']); ?>
+            </option>
+        <?php endforeach; ?>
+        <?php if ($filas === 0): ?>
+            <option value="">NO EXISTE EL PRODUCTO</option>
+        <?php endif; ?>
+    </select>
+</div>
+<div class="col-lg-2">
+    <input class="form-control" autocomplete="off" value=""
+           placeholder="$$" id="dato_precio"
+           type="text" required disabled>
+</div>
+<div class="col-lg-3">
+    <button type="button" id="boton_producto" class="btn btn-success">
+        Cargar Producto
+    </button>
+</div>
+
+<script type="text/javascript">
+(function() {
+    $('#boton_producto').prop('disabled', true);
+    var tempArray  = <?php echo json_encode($lista); ?>;
+    var tempArray2 = <?php echo json_encode($campoprecio); ?>;
+
+    $('#dato_producto').change(function() {
+        var cod   = $(this).val();
+        var campo = tempArray2[cod];
+        $('#dato_precio').val(tempArray[cod]);
+        if (cod !== '') {
+            $('#boton_producto').prop('disabled', false);
+            if (campo === 'false') {
+                $('#dato_precio').prop('disabled', false).val('').focus();
+            } else {
+                $('#dato_precio').prop('disabled', true);
+            }
+        } else {
+            $('#boton_producto').prop('disabled', true);
+            $('#dato_precio').prop('disabled', true);
+        }
+    });
+
+    $('#boton_producto').click(function() {
+        if ($('#dato_producto').val() !== '' && $('#dato_cantidad').val() > 0) {
+            var pars = '';
+            var campos = [], campospasan = [];
+            $("#formulario_nuevo").find(':input').each(function() {
+                var dato = $(this).attr('id').split('_', 2);
+                if (dato[0] === 'dato') {
+                    campos.push('dato_' + dato[1]);
+                    campospasan.push('dato_' + dato[1]);
+                }
+            });
+            for (var i = 0; i < campos.length; i++) {
+                pars += campospasan[i] + '=' + document.getElementById(campos[i]).value + '&';
+            }
+            $("#div_remitos").html('<div class="text-center"><div class="loadingsm"></div></div>');
+            $.ajax({
+                url      : "clases/guardar/producto-caja.php",
+                data     : pars,
+                dataType : "json",
+                type     : "get",
+                success  : function(data) {
+                    switch (data.success) {
+                        case 'true':
+                            $('#div_remitos').load('clases/nuevo/facturainsumo.php',
+                                {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
+                            $('#dato_cantidad').val(1);
+                            $('#dato_codigo').val('');
+                            $('#nombre').val('');
+                            $('#dato_codigo').focus();
+                            break;
+                        case 'no_existe':
+                            $('#div_duplicado').html('<div class="alert alert-danger alert-dismissible" role="alert">' +
+                                '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+                                'Producto inexistente!</div>');
+                            setTimeout("$('#div_duplicado').find('.alert').alert('close')", 2000);
+                            $('#div_remitos').load('clases/nuevo/facturainsumo.php',
+                                {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
+                            $('#dato_cantidad').val('1');
+                            $('#dato_codigo').val('');
+                            $('#nombre').val('');
+                            $('#dato_codigo').focus();
+                            break;
+                        case 'false':
+                            $('#div_remitos').html('<div class="alert alert-danger alert-dismissible" role="alert">' +
+                                '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+                                'Error reintente!</div>');
+                            setTimeout("$('#div_remitos').find('.alert').alert('close')", 2000);
+                            break;
+                    }
+                }
+            });
+        } else {
+            alert('Faltan datos');
+        }
+    });
+})();
+</script>
+
+<?php endif; ?>

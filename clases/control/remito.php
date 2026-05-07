@@ -12,14 +12,29 @@ if (mysqli_connect_errno()) {
 $remito    = $_REQUEST['remito']    ?? '';
 $proveedor = (int)($_REQUEST['proveedor'] ?? 0);
 
-// Devuelve false si el remito YA EXISTE (duplicado), true si está disponible.
+// Distingue tres estados:
+// 'borrador' → existe con estado='0' (puede continuar o descartar)
+// 'false'    → ya fue confirmado (estado='1'), no se puede reusar
+// 'true'     → no existe, disponible
+
 $stmt = mysqli_prepare($conexion,
-    "SELECT id_remitos FROM tb_remitos WHERE numero = ? AND id_proveedores = ?"
+    "SELECT estado, COUNT(*) AS cant
+     FROM tb_remitos
+     WHERE numero = ? AND id_proveedores = ?
+     GROUP BY estado
+     ORDER BY estado ASC
+     LIMIT 1"
 );
 mysqli_stmt_bind_param($stmt, 'si', $remito, $proveedor);
 mysqli_stmt_execute($stmt);
-mysqli_stmt_bind_result($stmt, $id_dup);
-$existe = (bool)mysqli_stmt_fetch($stmt);
+mysqli_stmt_bind_result($stmt, $estado, $cant);
+$found = (bool)mysqli_stmt_fetch($stmt);
 mysqli_stmt_close($stmt);
 
-echo json_encode(['success' => $existe ? 'false' : 'true']);
+if (!$found) {
+    echo json_encode(['success' => 'true']);
+} elseif ($estado === '0') {
+    echo json_encode(['success' => 'borrador', 'cant' => (int)$cant]);
+} else {
+    echo json_encode(['success' => 'false']);
+}
