@@ -10,6 +10,10 @@ csrf_validate();
 $remito    = $_POST['remito']             ?? '';
 $proveedor = (int)($_POST['proveedor']    ?? 0);
 
+// Normalizar sucursal: el JS envía "0001-00000001" pero la BD tiene "1-00000001"
+$parts  = explode('-', $remito, 2);
+$remito = (count($parts) === 2) ? ((int)$parts[0]) . '-' . $parts[1] : $remito;
+
 if ($remito === '' || $proveedor <= 0) {
     echo json_encode(['success' => 'false']); exit();
 }

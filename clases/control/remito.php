@@ -12,6 +12,12 @@ if (mysqli_connect_errno()) {
 $remito    = $_REQUEST['remito']    ?? '';
 $proveedor = (int)($_REQUEST['proveedor'] ?? 0);
 
+// El JS construye el número como "0001-00000001" pero carga-producto.php
+// castea la sucursal a (int), guardando "1-00000001" en la BD.
+// Normalizamos para que la búsqueda coincida.
+$parts  = explode('-', $remito, 2);
+$remito = (count($parts) === 2) ? ((int)$parts[0]) . '-' . $parts[1] : $remito;
+
 // Distingue tres estados:
 // 'borrador' → existe con estado='0' (puede continuar o descartar)
 // 'false'    → ya fue confirmado (estado='1'), no se puede reusar
