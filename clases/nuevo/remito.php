@@ -102,14 +102,7 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
 </div>
 
 <div class="row">
-  <!-- Alerta borrador: directamente en el DOM, mostrada/ocultada con JS -->
-  <div class="col-lg-10" id='div_duplicado'>
-    <div class="alert alert-warning" id="alerta_borrador" style="display:none">
-      <strong>Este remito tiene <span id="borrador_cant"></span> producto(s) en borrador.</strong>
-      <button type="button" class="btn btn-xs btn-default" id="btn_continuar_borrador" style="margin-left:8px">Continuar borrador</button>
-      <button type="button" class="btn btn-xs btn-danger"  id="btn_descartar_borrador" style="margin-left:4px">Descartar y empezar de cero</button>
-    </div>
-  </div>
+  <div class="col-lg-10" id='div_duplicado'></div>
 </div>
 
 </div>
@@ -143,36 +136,6 @@ var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     $('#dato_sucursal').mask("NNNN", {'translation': {N: {pattern: /[0-9]/}}, clearIfNotMatch: true});
     $('#dato_remito').mask("AAAAAAAA", {'translation': {A: {pattern: /[0-9]/}}, clearIfNotMatch: true});
     $('#boton_guardar').attr('disabled', true);
-
-    // Handlers del aviso borrador — registrados una vez en document.ready
-    $('#btn_continuar_borrador').click(function() {
-      $('#alerta_borrador').hide();
-    });
-    $('#btn_descartar_borrador').click(function() {
-      var remito    = $('#dato_sucursal').val() + '-' + $('#dato_remito').val();
-      var proveedor = $('#dato_proveedor').val();
-      $.ajax({
-        url      : 'clases/elimina/remito-borrador.php',
-        data     : {remito: remito, proveedor: proveedor, csrf_token: CSRF_TOKEN},
-        dataType : 'json',
-        type     : 'post',
-        success  : function(r) {
-          if (r.success === 'true') {
-            $('#div_remitos').html('');
-            $('#alerta_borrador').hide();
-            $('#boton_guardar').prop('disabled', true);
-            $('#dato_proveedor').prop('disabled', false);
-            $('#dato_sucursal').prop('disabled', false);
-            $('#dato_remito').prop('disabled', false);
-            $('#dato_remito').val('');
-            $('#remito-ok').html('');
-            $('#dato_sucursal').focus();
-          } else {
-            alert('Error al descartar. Reintente.');
-          }
-        }
-      });
-    });
   });
 
   // Búsqueda por código
@@ -253,8 +216,42 @@ var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
               $('#dato_sucursal').prop('disabled', true);
               $('#dato_remito').prop('disabled', true);
               // Aviso con opciones — usa template pre-renderizado (sin HTML en JS)
-              $('#borrador_cant').text(data.cant);
-              $('#alerta_borrador').show();
+              var cant = parseInt(data.cant);
+              $('#div_duplicado').html(
+                '<div class="alert alert-warning" style="margin-top:8px">' +
+                '<strong>Este remito tiene ' + cant + ' producto(s) en borrador.</strong>' +
+                '<button type="button" class="btn btn-xs btn-default" id="btn_continuar_borrador" style="margin-left:10px">Continuar borrador</button>' +
+                '<button type="button" class="btn btn-xs btn-danger" id="btn_descartar_borrador" style="margin-left:4px">Descartar y empezar de cero</button>' +
+                '</div>'
+              );
+              $('#btn_continuar_borrador').on('click', function() {
+                $('#div_duplicado').html('');
+              });
+              $('#btn_descartar_borrador').on('click', function() {
+                var remitoVal   = $('#dato_sucursal').val() + '-' + $('#dato_remito').val();
+                var proveedorVal = $('#dato_proveedor').val();
+                $.ajax({
+                  url      : 'clases/elimina/remito-borrador.php',
+                  data     : {remito: remitoVal, proveedor: proveedorVal, csrf_token: CSRF_TOKEN},
+                  dataType : 'json',
+                  type     : 'post',
+                  success  : function(r) {
+                    if (r.success === 'true') {
+                      $('#div_remitos').html('');
+                      $('#div_duplicado').html('');
+                      $('#boton_guardar').prop('disabled', true);
+                      $('#dato_proveedor').prop('disabled', false);
+                      $('#dato_sucursal').prop('disabled', false);
+                      $('#dato_remito').prop('disabled', false);
+                      $('#dato_remito').val('');
+                      $('#remito-ok').html('');
+                      $('#dato_sucursal').focus();
+                    } else {
+                      alert('Error al descartar. Reintente.');
+                    }
+                  }
+                });
+              });
 
             } else {
               $('#remito-ok').html('<span class="glyphicon glyphicon-remove" style="line-height:28px"></span>');
