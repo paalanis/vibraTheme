@@ -90,7 +90,7 @@ mysqli_stmt_close($stmt_r);
     </div>
     <div class="col-lg-5">
       <div align="right">
-        <button type="button" onclick="inicio()" class="btn btn-default">Salir</button>
+        <button type="button" id="boton_salir" onclick="inicio()" class="btn btn-default">Salir</button>
         <button type="button" id="boton_buscar" class="btn btn-primary"
                 onclick="reporte('stock')">Buscar</button>
       </div>
@@ -104,6 +104,6 @@ mysqli_stmt_close($stmt_r);
 
 <script type="text/javascript">
   $(document).ready(function() {
-    document.getElementById("botonExcel1").style.visibility = "hidden";
+    $('#botonExcel1').hide();
   });
 </script>
