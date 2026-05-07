@@ -55,7 +55,7 @@ mysqli_stmt_close($stmt);
 
 <?php if ($modo === 'remito'): ?>
 <!-- ── MODO REMITO: cantidad + precio_costo editable ──────────── -->
-<div class="col-lg-5">
+<div class="col-lg-4">
     <select class="form-control" id="dato_producto" required>
         <option value="">Seleccione producto</option>
         <?php foreach ($rows as $row): ?>
