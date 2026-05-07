@@ -55,7 +55,7 @@ mysqli_stmt_close($stmt);
 
 <?php if ($modo === 'remito'): ?>
 <!-- ── MODO REMITO: cantidad + precio_costo editable ──────────── -->
-<div class="col-lg-3">
+<div class="col-lg-5">
     <select class="form-control" id="dato_producto" required>
         <option value="">Seleccione producto</option>
         <?php foreach ($rows as $row): ?>
@@ -68,14 +68,14 @@ mysqli_stmt_close($stmt);
         <?php endif; ?>
     </select>
 </div>
-<div class="col-lg-4">
+<div class="col-lg-3">
     <div class="input-group">
         <span class="input-group-addon">Cant.</span>
         <input class="form-control" autocomplete="off" value="1"
                id="dato_cantidad" type="number" min="1" step="1" required>
     </div>
 </div>
-<div class="col-lg-4">
+<div class="col-lg-3">
     <div class="input-group">
         <span class="input-group-addon">$ costo</span>
         <input class="form-control" autocomplete="off" value=""
