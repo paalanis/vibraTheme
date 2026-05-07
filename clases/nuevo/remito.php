@@ -102,7 +102,14 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
 </div>
 
 <div class="row">
-  <div class="col-lg-10" id='div_duplicado'></div>
+  <!-- Alerta borrador: directamente en el DOM, mostrada/ocultada con JS -->
+  <div class="col-lg-10" id='div_duplicado'>
+    <div class="alert alert-warning" id="alerta_borrador" style="display:none">
+      <strong>Este remito tiene <span id="borrador_cant"></span> producto(s) en borrador.</strong>
+      <button type="button" class="btn btn-xs btn-default" id="btn_continuar_borrador" style="margin-left:8px">Continuar borrador</button>
+      <button type="button" class="btn btn-xs btn-danger"  id="btn_descartar_borrador" style="margin-left:4px">Descartar y empezar de cero</button>
+    </div>
+  </div>
 </div>
 
 </div>
@@ -128,16 +135,6 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
   <fieldset id="div_remitos"></fieldset>
 </div>
 
-<!-- Alerta borrador: pre-renderizada en PHP, oculta hasta que sea necesaria.
-     Evita HTML complejo dentro del bloque <script>, que confunde a jQuery .load() -->
-<div id="alerta_borrador_tpl" style="display:none">
-  <div class="alert alert-warning alert-dismissible" role="alert" id="alerta_borrador">
-    <strong>Este remito tiene <span id="borrador_cant"></span> producto(s) en borrador.</strong>
-    <button type="button" class="btn btn-xs btn-default" id="btn_continuar_borrador" style="margin-left:8px">Continuar borrador</button>
-    <button type="button" class="btn btn-xs btn-danger"  id="btn_descartar_borrador" style="margin-left:4px">Descartar y empezar de cero</button>
-  </div>
-</div>
-
 <script type="text/javascript">
 // CSRF token como variable JS — evita PHP anidado dentro de callbacks
 var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
@@ -146,6 +143,36 @@ var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
     $('#dato_sucursal').mask("NNNN", {'translation': {N: {pattern: /[0-9]/}}, clearIfNotMatch: true});
     $('#dato_remito').mask("AAAAAAAA", {'translation': {A: {pattern: /[0-9]/}}, clearIfNotMatch: true});
     $('#boton_guardar').attr('disabled', true);
+
+    // Handlers del aviso borrador — registrados una vez en document.ready
+    $('#btn_continuar_borrador').click(function() {
+      $('#alerta_borrador').hide();
+    });
+    $('#btn_descartar_borrador').click(function() {
+      var remito    = $('#dato_sucursal').val() + '-' + $('#dato_remito').val();
+      var proveedor = $('#dato_proveedor').val();
+      $.ajax({
+        url      : 'clases/elimina/remito-borrador.php',
+        data     : {remito: remito, proveedor: proveedor, csrf_token: CSRF_TOKEN},
+        dataType : 'json',
+        type     : 'post',
+        success  : function(r) {
+          if (r.success === 'true') {
+            $('#div_remitos').html('');
+            $('#alerta_borrador').hide();
+            $('#boton_guardar').prop('disabled', true);
+            $('#dato_proveedor').prop('disabled', false);
+            $('#dato_sucursal').prop('disabled', false);
+            $('#dato_remito').prop('disabled', false);
+            $('#dato_remito').val('');
+            $('#remito-ok').html('');
+            $('#dato_sucursal').focus();
+          } else {
+            alert('Error al descartar. Reintente.');
+          }
+        }
+      });
+    });
   });
 
   // Búsqueda por código
@@ -227,36 +254,7 @@ var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
               $('#dato_remito').prop('disabled', true);
               // Aviso con opciones — usa template pre-renderizado (sin HTML en JS)
               $('#borrador_cant').text(data.cant);
-              $('#div_duplicado').html($('#alerta_borrador_tpl').html());
-              // Continuar: solo cierra el aviso
-              $('#btn_continuar_borrador').click(function() {
-                $('#alerta_borrador').alert('close');
-              });
-              // Descartar: borra el borrador y resetea
-              $('#btn_descartar_borrador').click(function() {
-                $.ajax({
-                  url      : 'clases/elimina/remito-borrador.php',
-                  data     : {remito: remito, proveedor: proveedor,
-                              csrf_token: CSRF_TOKEN},
-                  dataType : 'json',
-                  type     : 'post',
-                  success  : function(r) {
-                    if (r.success === 'true') {
-                      $('#div_remitos').html('');
-                      $('#alerta_borrador').alert('close');
-                      $('#boton_guardar').prop('disabled', true);
-                      $('#dato_proveedor').prop('disabled', false);
-                      $('#dato_sucursal').prop('disabled', false);
-                      $('#dato_remito').prop('disabled', false);
-                      $('#dato_remito').val('');
-                      $('#remito-ok').html('');
-                      $('#dato_sucursal').focus();
-                    } else {
-                      alert('Error al descartar. Reintente.');
-                    }
-                  }
-                });
-              });
+              $('#alerta_borrador').show();
 
             } else {
               $('#remito-ok').html('<span class="glyphicon glyphicon-remove" style="line-height:28px"></span>');
