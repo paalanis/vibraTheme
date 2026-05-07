@@ -19,17 +19,20 @@ mysqli_begin_transaction($conexion);
 try {
     // Lee configuración de la sucursal: ¿se permite vender sin stock?
     // Si no hay fila en tb_configuracion, el default es '0' (bloquear).
+    // try-catch: PHP 8.1+ lanza excepción si tb_configuracion no es accesible.
     $permite_sin_stock = '0';
-    $stmt_cfg = mysqli_prepare($conexion,
-        "SELECT valor FROM tb_configuracion
-         WHERE id_sucursal = ? AND clave = 'permite_venta_sin_stock'"
-    );
-    if ($stmt_cfg) {
+    try {
+        $stmt_cfg = mysqli_prepare($conexion,
+            "SELECT valor FROM tb_configuracion
+             WHERE id_sucursal = ? AND clave = 'permite_venta_sin_stock'"
+        );
         mysqli_stmt_bind_param($stmt_cfg, 'i', $sucursal);
         mysqli_stmt_execute($stmt_cfg);
         mysqli_stmt_bind_result($stmt_cfg, $cfg_valor);
         $permite_sin_stock = mysqli_stmt_fetch($stmt_cfg) ? $cfg_valor : '0';
         mysqli_stmt_close($stmt_cfg);
+    } catch (\Throwable $e) {
+        $permite_sin_stock = '0'; // default: bloquear
     }
 
     // Si la sucursal no permite venta sin stock, verificar disponibilidad.

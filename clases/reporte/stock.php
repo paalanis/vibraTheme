@@ -13,17 +13,22 @@ $rubro    = (int)($_REQUEST['dato_rubro']    ?? 0);
 $estado   = $_REQUEST['dato_estado'] ?? 'todos';
 
 // Lee stock_minimo de tb_configuracion.
-// Si la tabla no existe o el usuario no tiene permisos, usa 5 como default.
+// try-catch necesario: PHP 8.1+ lanza mysqli_sql_exception en lugar de retornar false
+// cuando el usuario DB no tiene permisos o la tabla no existe.
 $stock_minimo = 5;
-$stmt_cfg = mysqli_prepare($conexion,
-    "SELECT MIN(CAST(valor AS UNSIGNED)) FROM tb_configuracion WHERE clave = 'stock_minimo'"
-);
-if ($stmt_cfg) {
+try {
+    $stmt_cfg = mysqli_prepare($conexion,
+        "SELECT MIN(CAST(valor AS UNSIGNED)) FROM tb_configuracion WHERE clave = 'stock_minimo'"
+    );
     mysqli_stmt_execute($stmt_cfg);
     mysqli_stmt_bind_result($stmt_cfg, $cfg_min);
     mysqli_stmt_fetch($stmt_cfg);
-    $stock_minimo = ($cfg_min !== null && $cfg_min > 0) ? (int)$cfg_min : 5;
+    if ($cfg_min !== null && (int)$cfg_min > 0) {
+        $stock_minimo = (int)$cfg_min;
+    }
     mysqli_stmt_close($stmt_cfg);
+} catch (\Throwable $e) {
+    $stock_minimo = 5; // default si tb_configuracion no es accesible
 }
 
 // Query principal: parte de tb_productos (LEFT JOIN) para incluir productos sin movimientos
