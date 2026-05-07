@@ -1,29 +1,41 @@
-<?php 
+<?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-header("Location: ../../index.php");
+    header("Location: ../../index.php"); exit();
 }
+
 include '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-	$array=array('success'=>'false');
-	echo json_encode($array);
-	exit();
-}else{
+    echo json_encode(['success' => 'false']);
+    exit();
+}
 
-	$cierre=$_REQUEST['cierre'];
+// Se usa la SESSION como fuente de verdad — no se acepta el cierre del REQUEST
+// para evitar que un usuario manipule el id_cierre en el payload.
+$cierre = (int)($_SESSION['cierre'] ?? 0);
 
-	//Elimina pruductos pendientes
-	$sql = "DELETE FROM tb_ventas WHERE tb_ventas.estado = '0' AND tb_ventas.id_cierre = '$cierre'";
-	mysqli_query($conexion,$sql);
-			
-	$sql = "UPDATE tb_cierres SET tb_cierres.estado = '1', tb_cierres.fecha_cierre = CURTIME() WHERE tb_cierres.id_cierre = '$cierre'";
-	mysqli_query($conexion,$sql); 
-	
-	unset($_SESSION['cierre']);
-	$array=array('success'=>'true', 'abrecaja'=>'true');
-	echo json_encode($array);
-	
+if ($cierre <= 0) {
+    echo json_encode(['success' => 'false']);
+    exit();
+}
 
-		
-} //fin else conexion
+// Elimina productos pendientes (carrito no confirmado) del cierre
+$stmt1 = mysqli_prepare($conexion,
+    "DELETE FROM tb_ventas WHERE estado = '0' AND id_cierre = ?"
+);
+mysqli_stmt_bind_param($stmt1, 'i', $cierre);
+mysqli_stmt_execute($stmt1);
+mysqli_stmt_close($stmt1);
+
+// Cierra la caja
+$stmt2 = mysqli_prepare($conexion,
+    "UPDATE tb_cierres SET estado = '1', fecha_cierre = NOW() WHERE id_cierre = ?"
+);
+mysqli_stmt_bind_param($stmt2, 'i', $cierre);
+mysqli_stmt_execute($stmt2);
+mysqli_stmt_close($stmt2);
+
+unset($_SESSION['cierre']);
+
+echo json_encode(['success' => 'true', 'abrecaja' => 'true']);
 ?>
