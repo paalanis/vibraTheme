@@ -4,6 +4,7 @@ if (!isset($_SESSION['usuario'])) {
     header("Location: ../../index.php");
 }
 require_once '../../conexion/conexion.php';
+require_once '../../conexion/csrf.php';
 if (mysqli_connect_errno()) {
     printf("La conexión con el servidor de base de datos falló: %s\n", mysqli_connect_error());
     exit();
@@ -127,7 +128,20 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
   <fieldset id="div_remitos"></fieldset>
 </div>
 
+<!-- Alerta borrador: pre-renderizada en PHP, oculta hasta que sea necesaria.
+     Evita HTML complejo dentro del bloque <script>, que confunde a jQuery .load() -->
+<div id="alerta_borrador_tpl" style="display:none">
+  <div class="alert alert-warning alert-dismissible" role="alert" id="alerta_borrador">
+    <strong>Este remito tiene <span id="borrador_cant"></span> producto(s) en borrador.</strong>
+    <button type="button" class="btn btn-xs btn-default" id="btn_continuar_borrador" style="margin-left:8px">Continuar borrador</button>
+    <button type="button" class="btn btn-xs btn-danger"  id="btn_descartar_borrador" style="margin-left:4px">Descartar y empezar de cero</button>
+  </div>
+</div>
+
 <script type="text/javascript">
+// CSRF token como variable JS — evita PHP anidado dentro de callbacks
+var CSRF_TOKEN = '<?php echo csrf_token(); ?>';
+
   $(document).ready(function () {
     $('#dato_sucursal').mask("NNNN", {'translation': {N: {pattern: /[0-9]/}}, clearIfNotMatch: true});
     $('#dato_remito').mask("AAAAAAAA", {'translation': {A: {pattern: /[0-9]/}}, clearIfNotMatch: true});
@@ -211,14 +225,9 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
               $('#dato_proveedor').prop('disabled', true);
               $('#dato_sucursal').prop('disabled', true);
               $('#dato_remito').prop('disabled', true);
-              // Aviso con opciones
-              $('#div_duplicado').html(
-                '<div class="alert alert-warning alert-dismissible" role="alert" id="alerta_borrador">' +
-                '<strong>Este remito tiene ' + data.cant + ' producto(s) en borrador.</strong> ' +
-                '<button type="button" class="btn btn-xs btn-default" id="btn_continuar_borrador" style="margin-left:8px">Continuar borrador</button> ' +
-                '<button type="button" class="btn btn-xs btn-danger"  id="btn_descartar_borrador" style="margin-left:4px">Descartar y empezar de cero</button>' +
-                '</div>'
-              );
+              // Aviso con opciones — usa template pre-renderizado (sin HTML en JS)
+              $('#borrador_cant').text(data.cant);
+              $('#div_duplicado').html($('#alerta_borrador_tpl').html());
               // Continuar: solo cierra el aviso
               $('#btn_continuar_borrador').click(function() {
                 $('#alerta_borrador').alert('close');
@@ -228,7 +237,7 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
                 $.ajax({
                   url      : 'clases/elimina/remito-borrador.php',
                   data     : {remito: remito, proveedor: proveedor,
-                              csrf_token: '<?php echo csrf_token(); ?>'},
+                              csrf_token: CSRF_TOKEN},
                   dataType : 'json',
                   type     : 'post',
                   success  : function(r) {
