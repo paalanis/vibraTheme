@@ -25,11 +25,11 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     while ($r = mysqli_fetch_assoc($rs)) {
         $rows[] = [
             'id'     => $r['id_productos'],
-            'nombre' => utf8_encode($r['nombre']),
+            'nombre' => $r['nombre'],
             'codigo' => $r['codigo'],
             'precio' => number_format((float)$r['precio_venta'], 2, '.', ''),
-            'color'  => utf8_encode($r['color']),
-            'talle'  => utf8_encode($r['talle']),
+            'color'  => $r['color'],
+            'talle'  => $r['talle'],
         ];
     }
     header('Content-Type: application/json');

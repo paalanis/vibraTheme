@@ -254,7 +254,8 @@ if ($factura !== 1) {
       if ($(this).val() !== '' && $('#dato_cantidad').val() > 0) {
         var pars = '';
         $("#formulario_nuevo").find(':input').each(function() {
-          var dato = $(this).attr('id').split('_', 2);
+          var _id = $(this).attr('id'); if (!_id) return;
+          var dato = _id.split('_', 2);
           if (dato[0] === 'dato') {
             pars += 'dato_' + dato[1] + '=' + encodeURIComponent($(this).val()) + '&';
           }

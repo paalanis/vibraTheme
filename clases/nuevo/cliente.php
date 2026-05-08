@@ -128,10 +128,10 @@ exit();
               if ($cantidad > 0) { // si existen cliente con de esa cliente se muestran, de lo contrario queda en blanco  
              
               while ($datos = mysqli_fetch_assoc($rscliente)){
-              $id=utf8_encode($datos['id']);
-              $nombre=utf8_decode($datos['nombre']);
-              $telefono=utf8_encode($datos['telefono']);
-              $mail=utf8_decode($datos['mail']);
+              $id=$datos['id'];
+              $nombre=htmlspecialchars($datos['nombre'], ENT_QUOTES, 'UTF-8');
+              $telefono=htmlspecialchars($datos['telefono'], ENT_QUOTES, 'UTF-8');
+              $mail=htmlspecialchars($datos['mail'], ENT_QUOTES, 'UTF-8');
                             
               echo '
 

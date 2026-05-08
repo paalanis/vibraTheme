@@ -67,6 +67,7 @@ mysqli_stmt_close($stmt);
       <td><?php echo round($d['subtotal'], 2); ?></td>
       <td>
         <button type="button"
+                id="del_<?php echo (int)$d['id']; ?>"
                 class="ver_modal-danger btn btn-danger btn-xs"
                 data-id="<?php echo (int)$d['id']; ?>"
                 data-factura="<?php echo $factura; ?>"

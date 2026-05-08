@@ -114,7 +114,7 @@ mysqli_stmt_close($stmt);
         <option value="">Seleccione producto</option>
         <?php foreach ($rows as $row): ?>
             <option value="<?php echo $row['codigo']; ?>">
-                <?php echo utf8_encode($row['nombre']); ?>
+                <?php echo htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8'); ?>
             </option>
         <?php endforeach; ?>
         <?php if ($filas === 0): ?>
@@ -161,7 +161,8 @@ mysqli_stmt_close($stmt);
             var pars = '';
             var campos = [], campospasan = [];
             $("#formulario_nuevo").find(':input').each(function() {
-                var dato = $(this).attr('id').split('_', 2);
+                var _id = $(this).attr('id'); if (!_id) return;
+                var dato = _id.split('_', 2);
                 if (dato[0] === 'dato') {
                     campos.push('dato_' + dato[1]);
                     campospasan.push('dato_' + dato[1]);

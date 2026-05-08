@@ -47,7 +47,7 @@ $rsproveedor = mysqli_query($conexion, $sqlproveedor);
               <option value=""></option>
               <?php while ($sql_proveedor = mysqli_fetch_assoc($rsproveedor)): ?>
                 <option value="<?php echo $sql_proveedor['id']; ?>">
-                  <?php echo utf8_encode($sql_proveedor['proveedor']); ?>
+                  <?php echo htmlspecialchars($sql_proveedor['proveedor'], ENT_QUOTES, 'UTF-8'); ?>
                 </option>
               <?php endwhile; ?>
             </select>

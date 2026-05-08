@@ -13,9 +13,14 @@ include '../conexion/conexion.php';
 
 		
 
-	    $factura=$_REQUEST['factura'];
+	    $factura = (int)($_REQUEST['factura'] ?? 0);
         
-        $sqlingreso = "SELECT
+        $nombrecliente = '';
+$total_fc     = 0;
+$monto        = 0;
+$vuelto       = 0;
+
+$sqlingreso = "SELECT
             tb_ventas.id_ventas AS id,
             tb_productos.nombre AS producto,
             tb_productos.codigo AS codigo,
@@ -58,10 +63,9 @@ use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 $nombre_impresora = $_SESSION['puesto'];
 
 
+try {
 $connector = new NetworkPrintConnector($nombre_impresora, 9100);
 $printer = new Printer($connector);
-#Mando un numero de respuesta para saber que se conecto correctamente.
-echo 1;
 /*
 	Vamos a imprimir un logotipo
 	opcional. Recuerda que esto
@@ -126,7 +130,7 @@ if ($cantidad > 0) { // si existen ingreso con de esa ingreso se muestran, de lo
         $total_fc = round(($total_fc + $subtotal),2);
 
         $printer->text("$producto\n");
-        $printer->text("$cantidad  $presentacion $$precio $$subtotal\n");
+        $printer->text("$r_cantidad  $presentacion $$precio $$subtotal\n");
 
     
      }
@@ -184,6 +188,8 @@ $printer->pulse();
 */
 $printer->close();
 
-//}
-
+} catch (Exception $e) {
+    error_log('reticket.php - Impresora no disponible: ' . $e->getMessage());
+}
+echo 1;
 ?>

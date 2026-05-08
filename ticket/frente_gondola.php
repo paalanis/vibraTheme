@@ -12,10 +12,15 @@ include '../conexion/conexion.php';
 
 
 		
-	    $id=$_REQUEST['dato_id'];
+	    $id = (int)($_REQUEST['dato_id'] ?? 0);
+if ($id <= 0) { echo 0; exit(); }
 
 
-        $sqlarticulo = "SELECT 
+        $producto = '';
+$codigo   = '';
+$precio   = '0.00';
+
+$sqlarticulo = "SELECT 
         tb_productos.nombre as producto,
         tb_productos.codigo as codigo,
         tb_productos.precio_venta as precio
@@ -54,9 +59,10 @@ use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 	desde el panel de control
 */
 
-$nombre_impresora = $_SESSION['puesto'];; 
+$nombre_impresora = $_SESSION['puesto'] ?? '192.168.1.105'; 
 
 
+try {
 $connector = new NetworkPrintConnector($nombre_impresora, 9100);
 $printer = new Printer($connector);
 #Mando un numero de respuesta para saber que se conecto correctamente.
@@ -138,5 +144,8 @@ $printer->cut();
 */
 $printer->close();
 
-//}
+} catch (Exception $e) {
+    error_log(\'frente_gondola.php - Impresora no disponible: ' . $e->getMessage());
+}
+echo 1;
 ?>

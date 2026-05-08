@@ -35,7 +35,7 @@ mysqli_stmt_bind_result($stmt, $r_id, $r_nombre, $r_clave, $r_valor);
 $sucursales = [];
 while (mysqli_stmt_fetch($stmt)) {
     if (!isset($sucursales[$r_id])) {
-        $sucursales[$r_id] = ['nombre' => utf8_encode($r_nombre), 'config' => []];
+        $sucursales[$r_id] = ['nombre' => $r_nombre, 'config' => []];
     }
     if ($r_clave !== null) {
         $sucursales[$r_id]['config'][$r_clave] = $r_valor;

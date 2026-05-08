@@ -178,8 +178,9 @@ $('.form-control').change(function() {
 
       $("#formulario_reporte").find(':input').each(function(){
                 
-              $(this).attr('id')
-              var dato = $(this).attr('id').split('_',2) 
+              var _id = $(this).attr('id');
+                
+              if (!_id) return;              var dato = _id.split('_',2) 
             
               if (dato[0] == 'dato') {
                  campos.push("dato_"+dato[1])

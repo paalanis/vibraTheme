@@ -75,10 +75,10 @@ exit();
               if ($cantidad > 0) { // si existen insumo con de esa insumo se muestran, de lo contrario queda en blanco  
              
               while ($datos = mysqli_fetch_assoc($rsinsumo)){
-              $productos=utf8_decode($datos['productos']);
-              $id_productos=utf8_encode($datos['id_productos']);
-              $codigo=utf8_encode($datos['codigo']);
-              $precio=utf8_encode($datos['precio']);
+              $productos=htmlspecialchars($datos['productos'], ENT_QUOTES, 'UTF-8');
+              $id_productos=(int)$datos['id_productos'];
+              $codigo=htmlspecialchars($datos['codigo'], ENT_QUOTES, 'UTF-8');
+              $precio=htmlspecialchars($datos['precio'], ENT_QUOTES, 'UTF-8');
                             
               echo '
 

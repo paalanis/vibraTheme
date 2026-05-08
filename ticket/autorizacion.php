@@ -31,7 +31,7 @@ use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 	desde el panel de control
 */
 
-$nombre_impresora = $_SESSION['puesto'];; 
+$nombre_impresora = $_SESSION['puesto'] ?? '192.168.1.105'; 
 
 
 $connector = new NetworkPrintConnector($nombre_impresora, 9100);
@@ -114,5 +114,8 @@ $printer->cut();
 */
 $printer->close();
 
-//}
+} catch (Exception $e) {
+    error_log('autorizacion.php - Impresora no disponible: ' . $e->getMessage());
+}
+echo 1;
 ?>

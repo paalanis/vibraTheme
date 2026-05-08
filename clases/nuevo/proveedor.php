@@ -120,11 +120,11 @@ $rsiva = mysqli_query($conexion, $sqliva);
               if ($cantidad > 0) { // si existen insumo con de esa insumo se muestran, de lo contrario queda en blanco  
              
               while ($datos = mysqli_fetch_assoc($rsinsumo)){
-              $id=utf8_encode($datos['id']);
-              $nombre=utf8_decode($datos['nombre']);
-              $cuit=utf8_encode($datos['cuit']);
-              $telefono=utf8_decode($datos['telefono']);
-              $mail=utf8_decode($datos['mail']);
+              $id=(int)$datos['id'];
+              $nombre=htmlspecialchars($datos['nombre'], ENT_QUOTES, 'UTF-8');
+              $cuit=htmlspecialchars($datos['cuit'], ENT_QUOTES, 'UTF-8');
+              $telefono=htmlspecialchars($datos['telefono'], ENT_QUOTES, 'UTF-8');
+              $mail=htmlspecialchars($datos['mail'], ENT_QUOTES, 'UTF-8');
                             
               echo '
 

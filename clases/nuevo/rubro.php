@@ -61,8 +61,8 @@ exit();
               if ($cantidad > 0) { // si existen rubro con de esa rubro se muestran, de lo contrario queda en blanco  
              
               while ($datos = mysqli_fetch_assoc($rsrubro)){
-              $rubro=utf8_decode($datos['rubro']);
-              $id_rubro=utf8_encode($datos['id_rubro']);
+              $rubro=htmlspecialchars($datos['rubro'], ENT_QUOTES, 'UTF-8');
+               $id_rubro=(int)$datos['id_rubro'];
               echo '
 
               <tr>
