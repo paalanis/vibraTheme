@@ -108,7 +108,9 @@
 
 		$("#formulario_reporte").find(':input').each(function(){
               
-            //alert($(this).attr('id'))
+            // BUG CORREGIDO: declarar var id antes de usarla
+            var id = $(this).attr('id');
+            if (!id) return;
             var dato = id.split('_',2) 
 
             if (dato[0] == 'dato') {

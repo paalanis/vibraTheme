@@ -79,7 +79,7 @@ $rsproducto = mysqli_query($conexion, $sqlproducto);
 
   $(document).ready(function () {
       
-   document.getElementById("botonExcel1").style.visibility = "hidden";
+   var _btn = document.getElementById("botonExcel1"); if (_btn) _btn.style.visibility = "hidden";
    $('mensaje_general').alert('close');
 
    })
