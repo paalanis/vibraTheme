@@ -53,8 +53,8 @@ mysqli_set_charset($cx, 'utf8mb4');
 // Usamos bind_result para compatibilidad con hostings sin mysqlnd
 $stmt = mysqli_prepare($cx,
     "SELECT id_usuario, nombre, data_base, db_user, db_pass,
-            tipo_user, estado, pass
-     FROM tb_usuarios WHERE nombre = ? LIMIT 1"
+        tipo_user, estado, pass, autoriza
+    FROM tb_usuarios WHERE nombre = ? LIMIT 1"
 );
 mysqli_stmt_bind_param($stmt, 's', $usuario);
 mysqli_stmt_execute($stmt);
@@ -64,7 +64,7 @@ $tipo_user  = $estado    = $pass_hash = null;
 
 mysqli_stmt_bind_result($stmt,
     $id_usuario, $nombre_db, $data_base, $db_user, $db_pass,
-    $tipo_user, $estado, $pass_hash
+    $tipo_user, $estado, $pass_hash, $autoriza
 );
 $found = mysqli_stmt_fetch($stmt);
 mysqli_stmt_close($stmt);
@@ -103,6 +103,7 @@ $_SESSION['basedatos'] = $data_base;
 $_SESSION['db_user']   = $db_user;
 $_SESSION['db_pass']   = $db_pass;
 $_SESSION['id_usuario']= $id_usuario;
+$_SESSION['autoriza'] = $autoriza;
 
 session_write_close();
 
