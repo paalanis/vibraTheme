@@ -57,7 +57,7 @@ if ($origen === 'dia') {
             COUNT(DISTINCT tv.numero_factura)         AS tickets,
             ROUND(SUM(tv.subtotal), 2)                AS total
          FROM tb_ventas tv
-         LEFT JOIN tb_cierres tc ON tc.id_cierre = tv.id_cierre
+         INNER JOIN tb_cierres tc ON tc.id_cierre = tv.id_cierre AND tc.estado = '0'
          WHERE tv.fecha BETWEEN ? AND ?
            AND tv.estado = '1'
          GROUP BY tv.id_cierre
