@@ -26,8 +26,9 @@
 
 		$("#formulario_nuevo").find(':input').each(function(){
               
-            $(this).attr('id')
-            var dato = $(this).attr('id').split('_',2) 
+            var id = $(this).attr('id');
+            if (!id) return;
+            var dato = id.split('_',2) 
           
             if (dato[0] == 'dato') {
                campos.push("dato_"+dato[1])
@@ -108,7 +109,7 @@
 		$("#formulario_reporte").find(':input').each(function(){
               
             //alert($(this).attr('id'))
-            var dato = $(this).attr('id').split('_',2) 
+            var dato = id.split('_',2) 
 
             if (dato[0] == 'dato') {
                campos.push("dato_"+dato[1])
@@ -166,8 +167,9 @@
 
 		$("#formulario_nuevo").find(':input').each(function(){
               
-            $(this).attr('id')
-            var dato = $(this).attr('id').split('_',2) 
+            var id = $(this).attr('id');
+            if (!id) return;
+            var dato = id.split('_',2) 
 
             if (dato[0] == 'dato') {
                campos.push("dato_"+dato[1])
@@ -246,8 +248,9 @@
 
 		$("#formulario_nuevo").find(':input').each(function(){
               
-            $(this).attr('id')
-            var dato = $(this).attr('id').split('_',2) 
+            var id = $(this).attr('id');
+            if (!id) return;
+            var dato = id.split('_',2) 
           
             if (dato[0] == 'dato') {
                campos.push("dato_"+dato[1])
