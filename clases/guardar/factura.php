@@ -10,16 +10,15 @@ csrf_validate();
 $cliente   = (int)($_POST['dato_cliente']   ?? 0);
 $sucursal  = (int)($_POST['dato_sucursal']  ?? 0);
 $factura   = (int)($_POST['dato_factura']   ?? 0);
-$condicion = (int)($_POST['dato_condicion'] ?? 0); // futuro: tb_ventas_condicion
-$cupon     = $_POST['dato_cupon'] ?? '';           // futuro: tb_ventas_condicion
+$condicion = (int)($_POST['dato_condicion'] ?? 0);
+$cupon     = trim($_POST['dato_cupon']      ?? '');
 $cierre    = (int)($_SESSION['cierre']      ?? 0);
+$id_usuario = (int)($_SESSION['id_usuario'] ?? 0);
 
 mysqli_begin_transaction($conexion);
 
 try {
-    // Lee configuración de la sucursal: ¿se permite vender sin stock?
-    // Si no hay fila en tb_configuracion, el default es '0' (bloquear).
-    // try-catch: PHP 8.1+ lanza excepción si tb_configuracion no es accesible.
+    // ── Configuración: ¿permitir venta sin stock? ─────────────────────────────
     $permite_sin_stock = '0';
     try {
         $stmt_cfg = mysqli_prepare($conexion,
@@ -32,10 +31,10 @@ try {
         $permite_sin_stock = mysqli_stmt_fetch($stmt_cfg) ? $cfg_valor : '0';
         mysqli_stmt_close($stmt_cfg);
     } catch (\Throwable $e) {
-        $permite_sin_stock = '0'; // default: bloquear
+        $permite_sin_stock = '0';
     }
 
-    // Si la sucursal no permite venta sin stock, verificar disponibilidad.
+    // ── Chequeo de stock ──────────────────────────────────────────────────────
     if ($permite_sin_stock === '0') {
         $stmt_chk = mysqli_prepare($conexion,
             "SELECT p.nombre, v.cantidad, COALESCE(e.cantidad, 0) AS disponible
@@ -51,7 +50,9 @@ try {
         mysqli_stmt_bind_result($stmt_chk, $chk_nombre, $chk_cant, $chk_disp);
         $faltantes = [];
         while (mysqli_stmt_fetch($stmt_chk)) {
-            $faltantes[] = utf8_encode($chk_nombre)
+            // FIX: utf8_encode() deprecated en PHP 8.2 → mb_convert_encoding
+            $nombre_utf8 = mb_convert_encoding($chk_nombre, 'UTF-8', 'UTF-8');
+            $faltantes[] = $nombre_utf8
                          . ' (necesita: ' . (float)$chk_cant
                          . ', disponible: ' . (float)$chk_disp . ')';
         }
@@ -62,8 +63,7 @@ try {
         }
     }
 
-    // Descuenta stock: inserta cantidad negativa en tb_existencias.
-    // VALUES(cantidad) referencia el valor computado del SELECT (compatible MariaDB 10.6).
+    // ── Descuenta stock ───────────────────────────────────────────────────────
     $stmt1 = mysqli_prepare($conexion,
         "INSERT INTO tb_existencias (id_productos, cantidad)
          SELECT id_productos, cantidad * -1
@@ -77,9 +77,7 @@ try {
     }
     mysqli_stmt_close($stmt1);
 
-    // Registra movimientos en tb_movimientos_stock (una fila por producto vendido).
-    // cantidad se guarda positiva con tipo='salida' para facilitar reportes.
-    $id_usuario = (int)($_SESSION['id_usuario'] ?? 0);
+    // ── Registra movimientos de stock ─────────────────────────────────────────
     $stmt_mov = mysqli_prepare($conexion,
         "INSERT INTO tb_movimientos_stock
              (id_producto, tipo, cantidad, referencia_tipo, referencia_id, id_usuario)
@@ -93,14 +91,17 @@ try {
     }
     mysqli_stmt_close($stmt_mov);
 
-    // Confirma la venta usando solo columnas que existen en tb_ventas.
-    // cupon e id_condicion_venta NO existen en tb_ventas — van en tb_ventas_condicion (pendiente).
+    // ── Confirma la venta + guarda condición de venta ─────────────────────────
+    // FIX: id_condicion_venta ahora se persiste en tb_ventas.
+    // Esto permite que el arqueo de cierre de caja agrupe correctamente
+    // por tipo de pago (efectivo, tarjeta, etc.).
     $stmt2 = mysqli_prepare($conexion,
-        "UPDATE tb_ventas SET estado = '1'
+        "UPDATE tb_ventas
+         SET estado = '1', id_condicion_venta = ?
          WHERE estado = '0' AND id_cierre = ? AND id_sucursal = ?
            AND numero_factura = ? AND id_clientes = ?"
     );
-    mysqli_stmt_bind_param($stmt2, 'iiii', $cierre, $sucursal, $factura, $cliente);
+    mysqli_stmt_bind_param($stmt2, 'iiiii', $condicion, $cierre, $sucursal, $factura, $cliente);
     if (!mysqli_stmt_execute($stmt2)) {
         throw new Exception('Error confirmando venta');
     }
