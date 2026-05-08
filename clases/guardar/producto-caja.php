@@ -5,14 +5,15 @@ if (!isset($_SESSION['usuario'])) {
 }
 require_once '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-    echo json_encode(['success' => 'false']);
-    exit();
+    echo json_encode(['success' => 'false']); exit();
 }
 
 $codigo_cargado = $_REQUEST['dato_codigo'] ?? '';
 
 if ($codigo_cargado !== '') {
     if (substr($codigo_cargado, 0, 2) === '99') {
+        // Código de balanza: primeros 7 dígitos = código producto,
+        // siguientes 5 = peso en gramos → convertir a kg
         $codigo     = substr($codigo_cargado, 0, 7);
         $cualprecio = 'sql';
         $cantidad   = (float)(substr($codigo_cargado, 7, 5)) / 1000;
@@ -27,8 +28,6 @@ if ($codigo_cargado !== '') {
     $cantidad   = (float)($_REQUEST['dato_cantidad'] ?? 1);
 }
 
-// Busca producto por código — prepared statement para evitar SQL injection.
-// bind_result en lugar de get_result (compatible con hosting sin mysqlnd).
 $stmt = mysqli_prepare($conexion,
     "SELECT precio_venta, id_productos, pesable FROM tb_productos WHERE codigo = ?"
 );
@@ -49,16 +48,13 @@ if ($found) {
                     ? (float)$precio_sql
                     : (float)($_REQUEST['dato_precio'] ?? 0);
 
-    if ((int)$pesable === 1) {
-        $subtotal = round($precio * $cantidad, 2);
-    } else {
-        $cantidad = $cantidad * 1000;
-        $subtotal = round($precio * $cantidad, 2);
-    }
+    // BUG CORREGIDO: el bloque anterior multiplicaba $cantidad * 1000
+    // en productos NO pesables (pesable=0), convirtiendo qty=1 en qty=1000.
+    // La lógica correcta:
+    //   pesable=1 → producto de balanza, $cantidad ya viene en kg desde el código
+    //   pesable=0 → producto normal, usar $cantidad tal cual
+    $subtotal = round($precio * $cantidad, 2);
 
-    // Inserta en carrito (estado queda en 0 hasta confirmar factura).
-    // Tipos: s=fecha, i=cliente, i=sucursal, i=factura, i=id_producto,
-    //        d=cantidad, d=precio, d=subtotal, i=cierre
     $stmt2 = mysqli_prepare($conexion,
         "INSERT INTO tb_ventas
          (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad, precio_venta, subtotal, id_cierre)
