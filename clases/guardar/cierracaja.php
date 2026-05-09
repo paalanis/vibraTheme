@@ -34,10 +34,10 @@ try {
     $stmt2 = mysqli_prepare($conexion,
         "INSERT INTO tb_ventas_acumulado
             (id_clientes, id_sucursal, numero_factura, id_productos,
-             cantidad, precio_venta, subtotal, id_condicion_venta, fecha, estado)
+             cantidad, precio_venta, subtotal, id_condicion_venta, id_cierre, fecha, estado)
          SELECT
             id_clientes, id_sucursal, numero_factura, id_productos,
-            cantidad, precio_venta, subtotal, id_condicion_venta, fecha, estado
+            cantidad, precio_venta, subtotal, id_condicion_venta, id_cierre, fecha, estado
          FROM tb_ventas
          WHERE id_cierre = ? AND estado = '1'"
     );
