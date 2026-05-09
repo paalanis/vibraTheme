@@ -15,13 +15,13 @@ $stmt = mysqli_prepare($conexion,
     "SELECT
         tv.numero_factura                            AS ticket,
         CONCAT(tc.apellido, ' ', tc.nombre)         AS cliente,
-        DATE_FORMAT(tv.fecha, '%d/%m/%Y %H:%i')     AS fecha,
+        DATE_FORMAT(MIN(tv.fecha), '%d/%m/%Y %H:%i') AS fecha,
         COUNT(tv.id_productos)                      AS items,
         ROUND(SUM(tv.subtotal), 2)                  AS total
      FROM $tabla tv
      INNER JOIN tb_clientes tc ON tc.id_clientes = tv.id_clientes
      WHERE tv.id_cierre = ? $filtro_estado
-     GROUP BY tv.numero_factura, tc.apellido, tc.nombre, tv.fecha
+     GROUP BY tv.numero_factura, tc.apellido, tc.nombre
      ORDER BY tv.numero_factura ASC"
 );
 mysqli_stmt_bind_param($stmt, 'i', $cierre);
@@ -39,7 +39,7 @@ $label = ($origen === 'dia') ? 'Caja abierta' : 'Caja cerrada';
 
 <div class="panel panel-default">
   <div class="panel-heading">
-    <button class="btn btn-default btn-xs" onclick="$('#div_reporte').html('')" style="margin-right:8px;">
+    <button type="button" class="btn btn-default btn-xs" onclick="reporte('ventas')" style="margin-right:8px;">
       <span class="glyphicon glyphicon-arrow-left"></span> Volver
     </button>
     <strong><?php echo $label; ?> — Cierre N° <?php echo $cierre; ?></strong>
@@ -69,7 +69,7 @@ $label = ($origen === 'dia') ? 'Caja abierta' : 'Caja cerrada';
           <td class="text-center"><?php echo (int)$d['items']; ?></td>
           <td class="text-right"><strong>$ <?php echo number_format($d['total'], 2, ',', '.'); ?></strong></td>
           <td class="text-center">
-            <button class="btn btn-success btn-xs"
+            <button type="button" class="btn btn-success btn-xs"
                     onclick="verTicket(<?php echo (int)$d['ticket']; ?>,<?php echo $cierre; ?>,'<?php echo $origen; ?>')">
               <span class="glyphicon glyphicon-search"></span> Ver
             </button>
@@ -96,7 +96,8 @@ function verTicket(ticket, cierre, origen) {
     $('#div_ticket_detalle').html('<div class="text-center"><div class="loadingsm"></div></div>');
     $('#div_ticket_detalle').load('clases/reporte/ventas-ticket.php', { ticket: ticket, cierre: cierre, origen: origen });
     setTimeout(function(){
-        $('html,body').animate({ scrollTop: $('#div_ticket_detalle').offset().top - 20 }, 300);
-    }, 200);
+        var top = $('#div_ticket_detalle').offset();
+        if (top) $('html,body').animate({ scrollTop: top.top - 20 }, 300);
+    }, 300);
 }
 </script>

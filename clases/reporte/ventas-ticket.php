@@ -27,7 +27,7 @@ $stmt = mysqli_prepare($conexion,
      INNER JOIN tb_clientes  tc ON tc.id_clientes  = tv.id_clientes
      LEFT  JOIN tb_condicion_venta tcv ON tcv.id_condicion_venta = tv.id_condicion_venta
      WHERE tv.numero_factura = ? AND tv.id_cierre = ? $filtro_estado
-     ORDER BY tv.id_ventas ASC"
+     ORDER BY tv.fecha ASC"
 );
 mysqli_stmt_bind_param($stmt, 'ii', $ticket, $cierre);
 mysqli_stmt_execute($stmt);
@@ -55,7 +55,7 @@ $condicion = !empty($datos) ? $datos[0]['condicion']  : '—';
 
 <div class="panel panel-success" style="margin-top:12px;">
   <div class="panel-heading">
-    <button class="btn btn-default btn-xs" onclick="$('#div_ticket_detalle').html('')" style="margin-right:8px;">
+    <button type="button" class="btn btn-default btn-xs" onclick="$('#div_ticket_detalle').html('')" style="margin-right:8px;">
       <span class="glyphicon glyphicon-remove"></span> Cerrar
     </button>
     <strong>Ticket N° <?php echo $ticket; ?></strong>

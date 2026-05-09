@@ -88,7 +88,7 @@ $label_origen  = ($origen === 'dia') ? 'Ventas del día — caja abierta' : 'Ven
           <td class="text-center"><?php echo (int)$d['tickets']; ?></td>
           <td class="text-right"><strong>$ <?php echo number_format($d['total'], 2, ',', '.'); ?></strong></td>
           <td class="text-center">
-            <button class="btn btn-info btn-xs"
+            <button type="button" class="btn btn-info btn-xs"
                     onclick="verCierre(<?php echo (int)$d['cierre']; ?>,'<?php echo $origen; ?>')">
               <span class="glyphicon glyphicon-list"></span> Ver tickets
             </button>
@@ -98,7 +98,7 @@ $label_origen  = ($origen === 'dia') ? 'Ventas del día — caja abierta' : 'Ven
       </tbody>
       <tfoot>
         <tr class="active">
-          <td colspan="<?php echo ($origen === 'dia') ? 4 : 3; ?>"><strong>Total del período</strong></td>
+          <td colspan="<?php echo ($origen === 'dia') ? 3 : 2; ?>"><strong>Total del período</strong></td>
           <td class="text-right"><strong>$ <?php echo number_format($total_general, 2, ',', '.'); ?></strong></td>
           <td></td>
         </tr>
@@ -125,7 +125,9 @@ $label_origen  = ($origen === 'dia') ? 'Ventas del día — caja abierta' : 'Ven
 
 <script>
 function verCierre(cierre, origen) {
+    var desde = $('#dato_desde').val();
+    var hasta  = $('#dato_hasta').val();
     $('#div_reporte').html('<div class="text-center"><div class="loadingsm"></div></div>');
-    $('#div_reporte').load('clases/reporte/ventas-cierre.php', { cierre: cierre, origen: origen });
+    $('#div_reporte').load('clases/reporte/ventas-cierre.php', { cierre: cierre, origen: origen, desde: desde, hasta: hasta });
 }
 </script>
