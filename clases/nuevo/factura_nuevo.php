@@ -272,6 +272,10 @@ if ($factura !== 1) {
             switch (data.success) {
               case 'true':
                 $('#div_remitos').load('clases/nuevo/facturainsumo.php', {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
+                if (data.sin_stock) {
+                  $('#div_duplicado').html('<div id="mensaje_general" class="alert alert-warning alert-dismissible" style="height:47px" role="alert"><button type="button" class="close" data-dismiss="alert">&times;</button>⚠ Producto agregado con stock insuficiente</div>');
+                  setTimeout("$('#mensaje_general').alert('close')", 4000);
+                }
                 $("#dato_cantidad").val(1); $("#dato_codigo").val(''); $("#nombre").val(''); $("#dato_codigo").focus();
                 break;
               case 'sin_stock':
