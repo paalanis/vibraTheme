@@ -182,6 +182,21 @@ mysqli_stmt_close($stmt);
                         case 'true':
                             $('#div_remitos').load('clases/nuevo/facturainsumo.php',
                                 {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
+                            if (data.sin_stock) {
+                                $('#div_duplicado').html('<div id="msg_sinstock" class="alert alert-warning alert-dismissible" style="height:47px" role="alert"><button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>⚠ Producto agregado con stock insuficiente</div>');
+                                setTimeout("$('#msg_sinstock').alert('close')", 4000);
+                            }
+                            $('#dato_cantidad').val(1);
+                            $('#dato_codigo').val('');
+                            $('#nombre').val('');
+                            $('#dato_codigo').focus();
+                            break;
+                        case 'sin_stock':
+                            // Producto rechazado por falta de stock (config permite_sin_stock=0)
+                            $('#div_remitos').load('clases/nuevo/facturainsumo.php',
+                                {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
+                            $('#div_duplicado').html('<div id="msg_sinstock" class="alert alert-warning alert-dismissible" style="height:47px" role="alert"><button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>Sin stock suficiente (disponible: ' + data.stock + ', necesita: ' + data.necesita + ')</div>');
+                            setTimeout("$('#msg_sinstock').alert('close')", 3000);
                             $('#dato_cantidad').val(1);
                             $('#dato_codigo').val('');
                             $('#nombre').val('');
