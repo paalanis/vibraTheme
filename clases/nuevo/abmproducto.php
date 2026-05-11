@@ -36,7 +36,7 @@ function opcionesHtml($rows, $selected = 0) {
 ?>
 
 <form class="form-horizontal" role="form" id="formulario_nuevo"
-      onsubmit="event.preventDefault(); nuevo('abmproducto')">
+      onsubmit="event.preventDefault(); guardarProducto()">
 
 <div class="modal-header">
   <h4 class="modal-title">Alta de Producto</h4>
@@ -119,19 +119,12 @@ function opcionesHtml($rows, $selected = 0) {
    <fieldset>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-3 control-label">Código</label>
+      <label class="col-lg-3 control-label">Código EAN-13</label>
       <div class="col-lg-9">
-        <div class="input-group input-group-sm">
-          <input type="text" class="form-control" autocomplete="off"
-                 id="dato_codigo" placeholder="Auto-generado" required>
-          <span class="input-group-btn">
-            <button type="button" class="btn btn-default" id="btn-regenerar"
-                    title="Regenerar código">
-              <span class="glyphicon glyphicon-refresh"></span>
-            </button>
-          </span>
-        </div>
-        <div id="codigo-estado" style="margin-top:4px;min-height:18px"></div>
+        <input type="text" class="form-control input-sm" id="dato_codigo"
+               readonly placeholder="Se genera automáticamente al guardar"
+               style="background:#f5f5f5;color:#888">
+        <div id="dup-estado" style="margin-top:4px;min-height:18px"></div>
       </div>
     </div>
 
@@ -199,65 +192,46 @@ function opcionesHtml($rows, $selected = 0) {
 </form>
 
 <script>
-(function() {
+// Manejo custom para mostrar errores descriptivos del servidor
+function guardarProducto() {
+  var pars = '';
+  $("#formulario_nuevo").find(':input').each(function() {
 
-  // ── EAN-13 client-side ──────────────────────────────────────────────
-  function ean13check(base12) {
-    var sum = 0;
-    for (var i = 0; i < 12; i++) {
-      sum += parseInt(base12[i]) * (i % 2 === 0 ? 1 : 3);
-    }
-    return (10 - (sum % 10)) % 10;
-  }
-
-  function verificarCodigo(codigo) {
-    if (!codigo || codigo.length < 8) {
-      $('#codigo-estado').html('');
-      return;
-    }
-    $('#codigo-estado').html('<span class="text-muted"><small>Verificando...</small></span>');
-    $.ajax({
-      url      : 'clases/control/codigo.php',
-      data     : {codigo: codigo},
-      dataType : 'json',
-      type     : 'get',
-      success  : function(data) {
-        if (data.existe) {
-          $('#codigo-estado').html(
-            '<span class="text-danger">' +
-            '<span class="glyphicon glyphicon-warning-sign"></span> ' +
-            '<strong>Código duplicado</strong> — ya existe en: <em>' + data.nombre + '</em>' +
-            '</span>'
-          );
-          $('#dato_codigo').closest('.input-group').parent().addClass('has-error');
-          $('#boton_guardar').prop('disabled', true);
-        } else {
-          $('#codigo-estado').html(
-            '<span class="text-success">' +
-            '<span class="glyphicon glyphicon-ok"></span> Código disponible' +
-            '</span>'
-          );
-          $('#dato_codigo').closest('.input-group').parent().removeClass('has-error');
-          $('#boton_guardar').prop('disabled', false);
-        }
-      }
-    });
-  }
-
-  function generarCodigo() {
+  // ── Control de producto duplicado por atributos ─────────────────────
+  function verificarDuplicado() {
     var marca  = parseInt($('#dato_marca').val())  || 0;
     var genero = parseInt($('#dato_genero').val()) || 0;
     var tipo   = parseInt($('#dato_tipo').val())   || 0;
     var talle  = parseInt($('#dato_talle').val())  || 0;
     var color  = parseInt($('#dato_color').val())  || 0;
 
-    if (!marca || !genero || !tipo || !talle || !color) return;
-
-    var pad = function(n, w) { return String(n).padStart(w, '0'); };
-    var base12 = '20' + pad(marca,2) + pad(genero,2) + pad(tipo,2) + pad(talle,2) + pad(color,2);
-    var codigo  = base12 + ean13check(base12);
-    $('#dato_codigo').val(codigo);
-    verificarCodigo(codigo);
+    if (!marca || !genero || !tipo || !talle || !color) {
+      $('#dup-estado').html('');
+      $('#boton_guardar').prop('disabled', false);
+      return;
+    }
+    $('#dup-estado').html('<span class="text-muted"><small>Verificando...</small></span>');
+    var nombre = $('#dato_nombre').val().trim();
+    $.ajax({
+      url      : 'clases/control/producto-dup.php',
+      data     : {nombre:nombre, marca:marca, genero:genero, tipo:tipo, talle:talle, color:color},
+      dataType : 'json', type: 'get',
+      success  : function(data) {
+        if (data.existe) {
+          $('#dup-estado').html(
+            '<span class="text-danger"><span class="glyphicon glyphicon-ban-circle"></span> ' +
+            '<strong>Producto duplicado</strong> — ya existe: <em>' + data.nombre + '</em></span>'
+          );
+          $('#boton_guardar').prop('disabled', true);
+        } else {
+          $('#dup-estado').html(
+            '<span class="text-success"><span class="glyphicon glyphicon-ok"></span> ' +
+            'Combinación disponible</span>'
+          );
+          $('#boton_guardar').prop('disabled', false);
+        }
+      }
+    });
   }
 
   // ── Precio venta calculado ──────────────────────────────────────────
@@ -265,21 +239,15 @@ function opcionesHtml($rows, $selected = 0) {
     var costo  = parseFloat($('#dato_costo').val())  || 0;
     var margen = parseFloat($('#dato_margen').val()) || 0;
     if (costo > 0) {
-      var pv = costo * (1 + margen / 100);
-      $('#precio_venta_calc').val('$ ' + pv.toFixed(2));
+      $('#precio_venta_calc').val('$ ' + (costo * (1 + margen / 100)).toFixed(2));
     } else {
       $('#precio_venta_calc').val('');
     }
   }
 
-  // Eventos
-  $('.combo-codigo').on('change', generarCodigo);
-  $('#btn-regenerar').on('click', generarCodigo);
+  $('#dato_nombre').on('blur', verificarDuplicado);
+  $('#dato_marca, #dato_genero, #dato_tipo, #dato_talle, #dato_color').on('change', verificarDuplicado);
   $('#dato_costo, #dato_margen').on('input', calcularPrecioVenta);
-  // Verificar también cuando el usuario edita el código manualmente
-  $('#dato_codigo').on('blur', function() {
-    verificarCodigo($(this).val().trim());
-  });
 
 })();
 </script>
