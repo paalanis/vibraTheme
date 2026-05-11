@@ -34,12 +34,13 @@ if (mysqli_connect_errno()) {
           <div class="form-group form-group-sm">
             <label class="col-lg-3 control-label">Contraseña</label>
             <div class="col-lg-9">
-              <div class="input-group">
+              <div class="input-group input-group-sm">
                 <input type="password" class="form-control" autocomplete="new-password"
                        id="dato_pass" placeholder="Contraseña" required>
                 <span class="input-group-btn">
-                  <button class="btn btn-default" type="button" id="btn_toggle_pass"
-                          onclick="togglePass()" tabindex="-1">
+                  <button class="btn btn-default btn-xs" type="button" id="btn_toggle_pass"
+                          onclick="togglePass()" tabindex="-1"
+                          style="height:100%; padding: 2px 8px; font-size:12px;">
                     <span class="glyphicon glyphicon-eye-open" id="ico_pass"></span>
                   </button>
                 </span>
