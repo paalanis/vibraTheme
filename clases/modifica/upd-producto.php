@@ -142,9 +142,9 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
    <fieldset>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Código</label>
+      <label class="col-lg-3 control-label">Código</label>
       <div class="col-lg-8">
-        <div class="input-group">
+        <div class="input-group input-group-sm">
           <input type="text" class="form-control" autocomplete="off"
                  id="dato_codigo" value="<?php echo $p_codigo; ?>" required>
           <span class="input-group-btn">
@@ -158,33 +158,33 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Precio costo</label>
-      <div class="col-lg-8">
-        <div class="input-group">
-          <span class="input-group-addon">$</span>
-          <input type="number" class="form-control" autocomplete="off"
-                 id="dato_costo" step="0.01" min="0"
-                 value="<?php echo $p_costo; ?>" placeholder="0.00">
+      <label class="col-lg-3 control-label">Costo / Margen</label>
+      <div class="col-lg-9">
+        <div class="row">
+          <div class="col-xs-6">
+            <div class="input-group input-group-sm">
+              <span class="input-group-addon">$</span>
+              <input type="number" class="form-control" autocomplete="off"
+                     id="dato_costo" step="0.01" min="0"
+                     value="<?php echo $p_costo; ?>" placeholder="0.00">
+            </div>
+          </div>
+          <div class="col-xs-6">
+            <div class="input-group input-group-sm">
+              <input type="number" class="form-control" autocomplete="off"
+                     id="dato_margen" step="0.01" min="0" max="999"
+                     value="<?php echo $p_margen; ?>" placeholder="0.00">
+              <span class="input-group-addon">%</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Margen %</label>
-      <div class="col-lg-8">
-        <div class="input-group">
-          <input type="number" class="form-control" autocomplete="off"
-                 id="dato_margen" step="0.01" min="0" max="999"
-                 value="<?php echo $p_margen; ?>" placeholder="0.00">
-          <span class="input-group-addon">%</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Precio venta</label>
-      <div class="col-lg-8">
-        <div class="input-group">
+      <label class="col-lg-3 control-label">Precio venta</label>
+      <div class="col-lg-9">
+        <div class="input-group input-group-sm">
           <span class="input-group-addon">$</span>
           <input type="text" class="form-control" id="precio_venta_calc"
                  readonly value="<?php echo $pv_calc ? '$ '.$pv_calc : ''; ?>">
@@ -193,8 +193,8 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Foto (URL)</label>
-      <div class="col-lg-8">
+      <label class="col-lg-3 control-label">Foto (URL)</label>
+      <div class="col-lg-9">
         <input type="text" class="form-control" autocomplete="off"
                id="dato_foto" value="<?php echo $p_foto; ?>">
       </div>

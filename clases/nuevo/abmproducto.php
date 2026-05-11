@@ -36,7 +36,7 @@ function opcionesHtml($rows, $selected = 0) {
 ?>
 
 <form class="form-horizontal" role="form" id="formulario_nuevo"
-      onsubmit="event.preventDefault(); nuevo('producto')">
+      onsubmit="event.preventDefault(); nuevo('abmproducto')">
 
 <div class="modal-header">
   <h4 class="modal-title">Alta de Producto</h4>
