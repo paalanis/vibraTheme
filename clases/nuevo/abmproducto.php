@@ -119,8 +119,8 @@ function opcionesHtml($rows, $selected = 0) {
    <fieldset>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Código (EAN-13)</label>
-      <div class="col-lg-8">
+      <label class="col-lg-3 control-label">Código</label>
+      <div class="col-lg-9">
         <div class="input-group">
           <input type="text" class="form-control" autocomplete="off"
                  id="dato_codigo" placeholder="Auto-generado" required>
@@ -131,52 +131,50 @@ function opcionesHtml($rows, $selected = 0) {
             </button>
           </span>
         </div>
-        <small class="text-muted">Se genera automáticamente al elegir los atributos.
-          Puede editarlo manualmente si lo necesita.</small>
+        <small class="text-muted">Se genera automáticamente. Editable si es necesario.</small>
       </div>
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Precio costo</label>
-      <div class="col-lg-8">
+      <label class="col-lg-3 control-label">Costo</label>
+      <div class="col-lg-5">
         <div class="input-group">
           <span class="input-group-addon">$</span>
           <input type="number" class="form-control" autocomplete="off"
                  id="dato_costo" step="0.01" min="0" placeholder="0.00">
         </div>
-        <small class="text-muted">Se actualiza desde el remito. Opcional al cargar.</small>
       </div>
+      <small class="col-lg-4 text-muted" style="padding-top:6px">Desde remito</small>
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Margen %</label>
-      <div class="col-lg-8">
+      <label class="col-lg-3 control-label">Margen</label>
+      <div class="col-lg-5">
         <div class="input-group">
           <input type="number" class="form-control" autocomplete="off"
                  id="dato_margen" step="0.01" min="0" max="999" placeholder="0.00">
           <span class="input-group-addon">%</span>
         </div>
-        <small class="text-muted">Se actualiza desde el remito. Opcional al cargar.</small>
       </div>
+      <small class="col-lg-4 text-muted" style="padding-top:6px">Desde remito</small>
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Precio venta</label>
-      <div class="col-lg-8">
+      <label class="col-lg-3 control-label">Venta</label>
+      <div class="col-lg-9">
         <div class="input-group">
           <span class="input-group-addon">$</span>
           <input type="text" class="form-control" id="precio_venta_calc"
-                 readonly placeholder="Calculado automáticamente">
+                 readonly placeholder="Costo × (1 + Margen%)">
         </div>
-        <small class="text-muted">= Costo × (1 + Margen%)</small>
       </div>
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-4 control-label">Foto (URL)</label>
-      <div class="col-lg-8">
+      <label class="col-lg-3 control-label">Foto</label>
+      <div class="col-lg-9">
         <input type="text" class="form-control" autocomplete="off"
-               id="dato_foto" placeholder="Opcional">
+               id="dato_foto" placeholder="URL opcional">
       </div>
     </div>
 
