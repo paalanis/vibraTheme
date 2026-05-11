@@ -1,133 +1,115 @@
 <?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-header("Location: ../../index.php");
+    header("Location: ../../index.php"); exit();
 }
-include '../../conexion/conexion.php';
+require_once '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-printf("La conexión con el servidor de base de datos falló comuniquese con su administrador: %s\n", mysqli_connect_error());
-exit();
+    printf("Error de conexión: %s\n", mysqli_connect_error()); exit();
 }
+
+$tipo_busq = $_REQUEST['tipo'] ?? 'pornombre';
+$buscar    = '%' . ($_REQUEST['nombre'] ?? '') . '%';
+$codigo    = $_REQUEST['codigo'] ?? '';
+
+if ($tipo_busq === 'porcodigo') {
+    $stmt = mysqli_prepare($conexion,
+        "SELECT p.id_productos, p.nombre, p.codigo,
+                p.precio_costo, p.margen_ganancia,
+                g.nombre AS genero, m.nombre AS marca
+         FROM tb_productos p
+         LEFT JOIN tb_genero g ON g.id_genero = p.id_genero
+         LEFT JOIN tb_marca  m ON m.id_marca  = p.id_marca
+         WHERE p.codigo = ?
+         ORDER BY p.nombre ASC"
+    );
+    mysqli_stmt_bind_param($stmt, 's', $codigo);
+} else {
+    $stmt = mysqli_prepare($conexion,
+        "SELECT p.id_productos, p.nombre, p.codigo,
+                p.precio_costo, p.margen_ganancia,
+                g.nombre AS genero, m.nombre AS marca
+         FROM tb_productos p
+         LEFT JOIN tb_genero g ON g.id_genero = p.id_genero
+         LEFT JOIN tb_marca  m ON m.id_marca  = p.id_marca
+         WHERE CONCAT(p.nombre, p.codigo) LIKE ?
+         ORDER BY p.nombre ASC"
+    );
+    mysqli_stmt_bind_param($stmt, 's', $buscar);
+}
+mysqli_stmt_execute($stmt);
+mysqli_stmt_bind_result($stmt, $r_id, $r_nombre, $r_codigo, $r_costo, $r_margen, $r_genero, $r_marca);
+
+$rows = [];
+while (mysqli_stmt_fetch($stmt)) {
+    $pv = ($r_costo !== null && $r_margen !== null)
+            ? number_format($r_costo * (1 + $r_margen / 100), 2, '.', '')
+            : '-';
+    $rows[] = [
+        'id'     => $r_id,
+        'nombre' => htmlspecialchars(mb_convert_encoding($r_nombre ?? '', 'UTF-8', 'ISO-8859-1'), ENT_QUOTES, 'UTF-8'),
+        'codigo' => htmlspecialchars($r_codigo ?? '', ENT_QUOTES, 'UTF-8'),
+        'costo'  => $r_costo !== null ? number_format((float)$r_costo, 2, '.', '') : '-',
+        'margen' => $r_margen !== null ? number_format((float)$r_margen, 2, '.', '') . '%' : '-',
+        'pventa' => $pv !== '-' ? '$ ' . $pv : '-',
+        'genero' => htmlspecialchars($r_genero ?? '', ENT_QUOTES, 'UTF-8'),
+        'marca'  => htmlspecialchars($r_marca  ?? '', ENT_QUOTES, 'UTF-8'),
+    ];
+}
+mysqli_stmt_close($stmt);
 ?>
 
-
- <div class="row">
-
-<!--  <div class="col-lg-1"></div> -->
+<div class="row">
  <div class="col-lg-12">
- 
-   <fieldset>
+  <fieldset>
+   <div class="panel panel-default">
+    <div class="panel-body" id="Panel1" style="height:420px; overflow-y:auto">
+     <table class="table table-striped table-hover table-condensed">
+      <thead>
+        <tr class="active">
+          <th>Nombre</th>
+          <th>Marca / Género</th>
+          <th>Código</th>
+          <th>Costo</th>
+          <th>Margen</th>
+          <th>Precio venta</th>
+          <th>Editar</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($rows as $r): ?>
+        <tr>
+          <td><?php echo $r['nombre']; ?></td>
+          <td><?php echo $r['marca']; ?> / <?php echo $r['genero']; ?></td>
+          <td><?php echo $r['codigo']; ?></td>
+          <td><?php echo $r['costo'] !== '-' ? '$ ' . $r['costo'] : '-'; ?></td>
+          <td><?php echo $r['margen']; ?></td>
+          <td><?php echo $r['pventa']; ?></td>
+          <td>
+            <button class="ver_modal btn btn-xs btn-info" type="button"
+                    value="<?php echo $r['id']; ?>">
+              <span class="glyphicon glyphicon-pencil"></span>
+            </button>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if (empty($rows)): ?>
+          <tr><td colspan="7">No se encontraron productos.</td></tr>
+        <?php endif; ?>
+      </tbody>
+     </table>
+    </div>
+   </div>
+  </fieldset>
+ </div>
+</div>
 
-     <div class="panel panel-default">
-
-      <div class="panel-body" id="Panel1" style="height:400px">
-      <table class="table table-striped table-hover">
-        <thead>
-          <tr class="active">
-            <th>Producto</th>
-            <th>Código</th>
-            <th>Precio</th>
-            <th>Modificar</th>
-            </tr>
-        </thead>
-        <tbody>
-         
-              <?php
-
-              if ($_REQUEST['tipo'] == 'porcodigo' ) {
-                # code...
-                $codigo=$_REQUEST['codigo'];
-
-                $sqlinsumo = "SELECT
-                            tb_productos.id_productos AS id_productos,
-                            tb_productos.nombre AS productos,
-                            tb_productos.codigo AS codigo,
-                            tb_productos.precio_venta AS precio
-                            FROM
-                            tb_productos
-                            WHERE
-                            tb_productos.codigo = '$codigo'
-                            ORDER BY
-                            productos ASC";
-              }else{
-
-                $codigo = '%'.$_REQUEST['nombre'].'%';
-
-                $sqlinsumo = "SELECT
-                            tb_productos.id_productos AS id_productos,
-                            tb_productos.nombre AS productos,
-                            tb_productos.codigo AS codigo,
-                            tb_productos.precio_venta AS precio
-                            FROM
-                            tb_productos  
-                            WHERE
-                            CONCAT(tb_productos.nombre,tb_productos.codigo) LIKE '$codigo'
-                            ORDER BY
-                            productos ASC";
-
-              }
-
-             
-              $rsinsumo = mysqli_query($conexion, $sqlinsumo);
-              
-              $cantidad =  mysqli_num_rows($rsinsumo);
-
-              if ($cantidad > 0) { // si existen insumo con de esa insumo se muestran, de lo contrario queda en blanco  
-             
-              while ($datos = mysqli_fetch_assoc($rsinsumo)){
-              $productos=htmlspecialchars($datos['productos'], ENT_QUOTES, 'UTF-8');
-              $id_productos=(int)$datos['id_productos'];
-              $codigo=htmlspecialchars($datos['codigo'], ENT_QUOTES, 'UTF-8');
-              $precio=htmlspecialchars($datos['precio'], ENT_QUOTES, 'UTF-8');
-                            
-              echo '
-
-              <tr>
-                <td>'.$productos.'</td>
-                <td>'.$codigo.'</td>
-                <td>'.$precio.'</td>
-                <td><button class="ver_modal ver_modal-info ver_modal-xs" id="'.$id_productos.'" value="'.$id_productos.'" type="button"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></button></td>
-                </tr>
-              ';
-          
-              }   
-              }
-              ?>
-        </tbody>
-      </table> 
-      <?php
-       if ($cantidad == 0){
-
-                echo "No hay productos cargados.";
-              }
-      ?>
-      </div>
-      </div>      
-      
-         
-   </fieldset>
-  </div> 
-
-  <!-- <div class="col-lg-1"></div> -->
-
-</div> 
-
-
-
-<script type="text/javascript">
-
-  
-  $(function() {
-
-    $('.ver_modal').click(function(){
-
-      var id = $(this).val()
-    
-
-      $("#panel_inicio").html('<div class="text-center"><div class="loadingsm"></div></div>');
-      $('#panel_inicio').load("clases/modifica/upd-producto.php", {id:id});
-
-    })
-  })
-
+<script>
+$(function() {
+  $('.ver_modal').click(function() {
+    var id = $(this).val();
+    $("#panel_inicio").html('<div class="text-center"><div class="loadingsm"></div></div>');
+    $('#panel_inicio').load("clases/modifica/upd-producto.php", {id: id});
+  });
+});
 </script>

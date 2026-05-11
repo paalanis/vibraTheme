@@ -5,62 +5,61 @@ if (!isset($_SESSION['usuario'])) {
 }
 require_once '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-    printf("La conexión con el servidor de base de datos falló: %s\n", mysqli_connect_error());
-    exit();
+    printf("Error de conexión: %s\n", mysqli_connect_error()); exit();
 }
 
 $codigo = $_REQUEST['codigo'] ?? '';
 $modo   = $_REQUEST['buscar_modo'] ?? 'venta'; // 'remito' | 'venta'
-$buscar = trim('%' . $codigo . '%');
+$buscar = '%' . $codigo . '%';
 
-// En modo remito también traemos precio_costo.
+// precio_venta = precio_costo * (1 + margen_ganancia/100)
 $stmt = mysqli_prepare($conexion,
     "SELECT
-        tb_productos.id_productos              AS id,
-        tb_productos.codigo                    AS codigo2,
-        tb_productos.nombre                    AS producto,
-        IF(tb_productos.id_rubro > 1,'false','true') AS rubro,
-        tb_productos.precio_venta              AS precio_venta,
-        tb_productos.precio_costo              AS precio_costo
-     FROM tb_productos
-     WHERE CONCAT(tb_productos.nombre, tb_productos.codigo) LIKE ?
-     ORDER BY tb_productos.nombre ASC"
+        p.id_productos                                        AS id,
+        p.codigo                                              AS codigo2,
+        p.nombre                                              AS producto,
+        p.precio_costo                                        AS precio_costo,
+        p.margen_ganancia                                     AS margen,
+        ROUND(p.precio_costo * (1 + p.margen_ganancia/100), 2) AS precio_venta
+     FROM tb_productos p
+     WHERE CONCAT(p.nombre, p.codigo) LIKE ?
+     ORDER BY p.nombre ASC"
 );
 mysqli_stmt_bind_param($stmt, 's', $buscar);
 mysqli_stmt_execute($stmt);
-mysqli_stmt_bind_result($stmt, $r_id, $r_codigo, $r_nombre, $r_rubro, $r_precio_venta, $r_precio_costo);
+mysqli_stmt_bind_result($stmt, $r_id, $r_codigo, $r_nombre, $r_costo, $r_margen, $r_pventa);
 
-$filas       = 0;
-$lista       = [];   // codigo => precio_venta  (modo venta)
-$listacosto  = [];   // codigo => precio_costo  (modo remito)
-$campoprecio = [];   // codigo => rubro flag
-$rows        = [];
+$filas      = 0;
+$lista      = [];   // codigo => precio_venta
+$listacosto = [];   // codigo => precio_costo
+$listamargen= [];   // codigo => margen
+$rows       = [];
 
 while (mysqli_stmt_fetch($stmt)) {
     $filas++;
-    $lista[$r_codigo]       = $r_precio_venta;
-    $listacosto[$r_codigo]  = $r_precio_costo;
-    $campoprecio[$r_codigo] = $r_rubro;
+    $lista[$r_codigo]       = (float)$r_pventa;
+    $listacosto[$r_codigo]  = (float)$r_costo;
+    $listamargen[$r_codigo] = (float)$r_margen;
     $rows[] = [
-        'id'      => $r_id,
-        'codigo'  => $r_codigo,
-        'nombre'  => $r_nombre,
-        'rubro'   => $r_rubro,
-        'pventa'  => $r_precio_venta,
-        'pcosto'  => $r_precio_costo,
+        'id'     => $r_id,
+        'codigo' => $r_codigo,
+        'nombre' => $r_nombre,
+        'pventa' => $r_pventa,
+        'costo'  => $r_costo,
+        'margen' => $r_margen,
     ];
 }
 mysqli_stmt_close($stmt);
 ?>
 
 <?php if ($modo === 'remito'): ?>
-<!-- ── MODO REMITO: cantidad + precio_costo editable ──────────── -->
-<div class="col-lg-4">
+<!-- ── MODO REMITO: cantidad + precio_costo + margen editable ─── -->
+<div class="col-lg-3">
     <select class="form-control" id="dato_producto" required>
         <option value="">Seleccione producto</option>
         <?php foreach ($rows as $row): ?>
-            <option value="<?php echo $row['codigo']; ?>">
-                <?php echo mb_convert_encoding($row['nombre'], 'UTF-8', 'ISO-8859-1'); ?>
+            <option value="<?php echo htmlspecialchars($row['codigo'], ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars(mb_convert_encoding($row['nombre'],'UTF-8','ISO-8859-1'), ENT_QUOTES, 'UTF-8'); ?>
             </option>
         <?php endforeach; ?>
         <?php if ($filas === 0): ?>
@@ -68,22 +67,33 @@ mysqli_stmt_close($stmt);
         <?php endif; ?>
     </select>
 </div>
-<div class="col-lg-3">
+<div class="col-lg-2">
     <div class="input-group">
         <span class="input-group-addon">Cant.</span>
         <input class="form-control" autocomplete="off" value="1"
                id="dato_cantidad" type="number" min="1" step="1" required>
     </div>
 </div>
-<div class="col-lg-4">
+<div class="col-lg-2">
     <div class="input-group">
         <span class="input-group-addon">$ costo</span>
         <input class="form-control" autocomplete="off" value=""
                id="dato_precio" type="number" min="0" step="0.01">
     </div>
 </div>
+<div class="col-lg-2">
+    <div class="input-group">
+        <input class="form-control" autocomplete="off" value=""
+               id="dato_margen" type="number" min="0" step="0.01"
+               placeholder="<?php echo htmlspecialchars($GLOBALS['ultimo_margen'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+        <span class="input-group-addon">%</span>
+    </div>
+</div>
 <div class="col-lg-1">
-    <!-- type=submit dispara onsubmit del formulario → carga('producto') -->
+    <input class="form-control" autocomplete="off" id="precio_venta_muestra"
+           type="text" readonly placeholder="$ venta" style="background:#f5f5f5">
+</div>
+<div class="col-lg-1">
     <button type="submit" id="boton_producto" class="btn btn-success" disabled>
         Cargar
     </button>
@@ -91,29 +101,46 @@ mysqli_stmt_close($stmt);
 
 <script type="text/javascript">
 (function() {
-    var costos = <?php echo json_encode($listacosto); ?>;
+    var costos  = <?php echo json_encode($listacosto);  ?>;
+    var margenes= <?php echo json_encode($listamargen); ?>;
+
+    function calcPV() {
+        var costo  = parseFloat($('#dato_precio').val())  || 0;
+        var margen = parseFloat($('#dato_margen').val())  || 0;
+        if (costo > 0) {
+            $('#precio_venta_muestra').val('$ ' + (costo * (1 + margen / 100)).toFixed(2));
+        } else {
+            $('#precio_venta_muestra').val('');
+        }
+    }
 
     $('#dato_producto').change(function() {
         var cod = $(this).val();
         if (cod !== '') {
-            $('#dato_precio').val(costos[cod] || '');
+            $('#dato_precio').val(costos[cod]   || '');
+            $('#dato_margen').val(margenes[cod] || '');
+            calcPV();
             $('#boton_producto').prop('disabled', false);
             $('#dato_cantidad').focus();
         } else {
             $('#dato_precio').val('');
+            $('#dato_margen').val('');
+            $('#precio_venta_muestra').val('');
             $('#boton_producto').prop('disabled', true);
         }
     });
+
+    $('#dato_precio, #dato_margen').on('input', calcPV);
 })();
 </script>
 
 <?php else: ?>
-<!-- ── MODO VENTA: comportamiento original ────────────────────── -->
+<!-- ── MODO VENTA: comportamiento original con precio calculado ── -->
 <div class="col-lg-7">
     <select class="form-control" id="dato_producto" required>
         <option value="">Seleccione producto</option>
         <?php foreach ($rows as $row): ?>
-            <option value="<?php echo $row['codigo']; ?>">
+            <option value="<?php echo htmlspecialchars($row['codigo'], ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8'); ?>
             </option>
         <?php endforeach; ?>
@@ -136,23 +163,17 @@ mysqli_stmt_close($stmt);
 <script type="text/javascript">
 (function() {
     $('#boton_producto').prop('disabled', true);
-    var tempArray  = <?php echo json_encode($lista); ?>;
-    var tempArray2 = <?php echo json_encode($campoprecio); ?>;
+    var precios = <?php echo json_encode($lista); ?>;
 
     $('#dato_producto').change(function() {
-        var cod   = $(this).val();
-        var campo = tempArray2[cod];
-        $('#dato_precio').val(tempArray[cod]);
+        var cod = $(this).val();
         if (cod !== '') {
+            $('#dato_precio').val(precios[cod] || '0.00');
             $('#boton_producto').prop('disabled', false);
-            if (campo === 'false') {
-                $('#dato_precio').prop('disabled', false).val('').focus();
-            } else {
-                $('#dato_precio').prop('disabled', true);
-            }
-        } else {
-            $('#boton_producto').prop('disabled', true);
             $('#dato_precio').prop('disabled', true);
+        } else {
+            $('#dato_precio').val('');
+            $('#boton_producto').prop('disabled', true);
         }
     });
 
@@ -173,11 +194,11 @@ mysqli_stmt_close($stmt);
             }
             $("#div_remitos").html('<div class="text-center"><div class="loadingsm"></div></div>');
             $.ajax({
-                url      : "clases/guardar/producto-caja.php",
-                data     : pars,
-                dataType : "json",
-                type     : "get",
-                success  : function(data) {
+                url     : "clases/guardar/producto-caja.php",
+                data    : pars,
+                dataType: "json",
+                type    : "get",
+                success : function(data) {
                     switch (data.success) {
                         case 'true':
                             $('#div_remitos').load('clases/nuevo/facturainsumo.php',
@@ -202,7 +223,7 @@ mysqli_stmt_close($stmt);
                         case 'false':
                             $('#div_remitos').html('<div class="alert alert-danger alert-dismissible" role="alert">' +
                                 '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
-                                'Error reintente!</div>');
+                                'Error, reintente!</div>');
                             setTimeout("$('#div_remitos').find('.alert').alert('close')", 2000);
                             break;
                     }

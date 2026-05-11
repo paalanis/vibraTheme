@@ -13,27 +13,30 @@ $sucursal       = (int)($_REQUEST['dato_sucursal'] ?? 1);
 
 if ($codigo_cargado !== '') {
     if (substr($codigo_cargado, 0, 2) === '99') {
-        $codigo     = substr($codigo_cargado, 0, 7);
-        $cualprecio = 'sql';
-        $cantidad   = (float)(substr($codigo_cargado, 7, 5)) / 1000;
+        // Producto pesable: barcode contiene cantidad embebida
+        $codigo   = substr($codigo_cargado, 0, 7);
+        $cantidad = (float)(substr($codigo_cargado, 7, 5)) / 1000;
     } else {
-        $codigo     = $codigo_cargado;
-        $cualprecio = 'sql';
-        $cantidad   = (float)($_REQUEST['dato_cantidad'] ?? 1);
+        $codigo   = $codigo_cargado;
+        $cantidad = (float)($_REQUEST['dato_cantidad'] ?? 1);
     }
 } else {
-    $codigo     = $_REQUEST['dato_producto'] ?? '';
-    $cualprecio = 'manual';
-    $cantidad   = (float)($_REQUEST['dato_cantidad'] ?? 1);
+    $codigo   = $_REQUEST['dato_producto'] ?? '';
+    $cantidad = (float)($_REQUEST['dato_cantidad'] ?? 1);
 }
 
-// ── Buscar producto ───────────────────────────────────────────────────────────
+// Buscar producto — precio_venta calculado desde costo y margen
 $stmt = mysqli_prepare($conexion,
-    "SELECT precio_venta, id_productos, pesable FROM tb_productos WHERE codigo = ?"
+    "SELECT id_productos,
+            precio_costo,
+            margen_ganancia,
+            ROUND(precio_costo * (1 + margen_ganancia / 100), 2) AS precio_venta
+     FROM tb_productos
+     WHERE codigo = ?"
 );
 mysqli_stmt_bind_param($stmt, 's', $codigo);
 mysqli_stmt_execute($stmt);
-mysqli_stmt_bind_result($stmt, $precio_sql, $id_producto, $pesable);
+mysqli_stmt_bind_result($stmt, $id_producto, $precio_costo, $margen_ganancia, $precio_sql);
 $found = (bool)mysqli_stmt_fetch($stmt);
 mysqli_stmt_close($stmt);
 
@@ -47,13 +50,11 @@ if (!$found) {
 }
 
 $fecha    = $_REQUEST['dato_fecha'] ?? '';
-$precio   = ($cualprecio === 'sql')
-                ? (float)$precio_sql
-                : (float)($_REQUEST['dato_precio'] ?? 0);
+$precio   = (float)($precio_sql ?? 0);
 $subtotal = round($precio * $cantidad, 2);
 
-// ── Verificar configuración de stock ─────────────────────────────────────────
-$permite_sin_stock = '1'; // default: permite vender sin stock
+// Verificar configuración de stock por sucursal
+$permite_sin_stock = '1';
 $stmt_cfg = mysqli_prepare($conexion,
     "SELECT valor FROM tb_configuracion
      WHERE id_sucursal = ? AND clave = 'permite_venta_sin_stock' LIMIT 1"
@@ -66,7 +67,7 @@ if ($stmt_cfg) {
     mysqli_stmt_close($stmt_cfg);
 }
 
-// ── Consultar stock actual ────────────────────────────────────────────────────
+// Consultar stock
 $stmt_stock = mysqli_prepare($conexion,
     "SELECT COALESCE(cantidad, 0) FROM tb_existencias WHERE id_productos = ?"
 );
@@ -78,27 +79,27 @@ mysqli_stmt_close($stmt_stock);
 
 $sin_stock = ($stock_actual < $cantidad);
 
-// ── Bloquear si config lo exige ───────────────────────────────────────────────
 if ($sin_stock && $permite_sin_stock === '0') {
     echo json_encode([
-        'success'   => 'sin_stock',
-        'factura'   => $factura,
-        'cliente'   => $cliente,
-        'cierre'    => $cierre,
-        'stock'     => $stock_actual,
-        'necesita'  => $cantidad,
+        'success'  => 'sin_stock',
+        'factura'  => $factura,
+        'cliente'  => $cliente,
+        'cierre'   => $cierre,
+        'stock'    => $stock_actual,
+        'necesita' => $cantidad,
     ]);
     exit();
 }
 
-// ── Insertar en venta ─────────────────────────────────────────────────────────
+// Insertar en tb_ventas
 $stmt2 = mysqli_prepare($conexion,
     "INSERT INTO tb_ventas
      (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad, precio_venta, subtotal, id_cierre)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
 );
 mysqli_stmt_bind_param($stmt2, 'siiiidddi',
-    $fecha, $cliente, $sucursal, $factura, $id_producto, $cantidad, $precio, $subtotal, $cierre
+    $fecha, $cliente, $sucursal, $factura, $id_producto,
+    $cantidad, $precio, $subtotal, $cierre
 );
 mysqli_stmt_execute($stmt2);
 mysqli_stmt_close($stmt2);
@@ -108,5 +109,5 @@ echo json_encode([
     'factura'   => $factura,
     'cliente'   => $cliente,
     'cierre'    => $cierre,
-    'sin_stock' => $sin_stock, // aviso visual cuando permite_sin_stock = 1
+    'sin_stock' => $sin_stock,
 ]);

@@ -7,35 +7,30 @@ require_once '../../conexion/conexion.php';
 require_once '../../conexion/csrf.php';
 csrf_validate();
 
-$id          = (int)($_POST['dato_id']          ?? 0);
-$iva         = (int)($_POST['dato_iva']         ?? 0);
-$rubro       = (int)($_POST['dato_rubro']       ?? 0);
-$nombre      = $_POST['dato_nombre']      ?? '';
-$descripcion = $_POST['dato_descripcion'] ?? '';
-$costo       = (float)($_POST['dato_costo']     ?? 0);
-$venta       = (float)($_POST['dato_venta']     ?? 0);
-$codigo      = $_POST['dato_codigo']      ?? '';
-$pesable     = (int)($_POST['dato_pesable']     ?? 0);
+$id     = (int)($_POST['dato_id']     ?? 0);
+$nombre = trim($_POST['dato_nombre']  ?? '');
+$marca  = (int)($_POST['dato_marca']  ?? 0);
+$genero = (int)($_POST['dato_genero'] ?? 0);
+$tipo   = (int)($_POST['dato_tipo']   ?? 0);
+$talle  = (int)($_POST['dato_talle']  ?? 0);
+$color  = (int)($_POST['dato_color']  ?? 0);
+$iva    = (int)($_POST['dato_iva']    ?? 0);
+$codigo = trim($_POST['dato_codigo']  ?? '');
+$foto   = trim($_POST['dato_foto']    ?? '');
+$costo  = strlen(trim($_POST['dato_costo']  ?? '')) > 0 ? (float)$_POST['dato_costo']  : null;
+$margen = strlen(trim($_POST['dato_margen'] ?? '')) > 0 ? (float)$_POST['dato_margen'] : null;
 
+// Types: s(nombre) i(marca) i(genero) i(tipo) i(talle) i(color) i(iva)
+//        s(codigo) s(foto) d(costo) d(margen) i(id)  → 'siiiiiissddi'
 $stmt = mysqli_prepare($conexion,
     "UPDATE tb_productos
-     SET id_iva_condicion=?, id_rubro=?, nombre=?, descripcion=?,
-         precio_costo=?, precio_venta=?, codigo=?, pesable=?
+     SET nombre=?, id_marca=?, id_genero=?, id_tipo=?, id_talle=?, id_color=?,
+         id_iva_condicion=?, codigo=?, foto=?, precio_costo=?, margen_ganancia=?
      WHERE id_productos=?"
 );
-mysqli_stmt_bind_param($stmt, 'iissddsis',
-    $iva, $rubro, $nombre, $descripcion, $costo, $venta, $codigo, $pesable, $id
+mysqli_stmt_bind_param($stmt, 'siiiiiissddi',
+    $nombre, $marca, $genero, $tipo, $talle, $color,
+    $iva, $codigo, $foto, $costo, $margen, $id
 );
-// Re-bind con tipos correctos:
-mysqli_stmt_close($stmt);
-$stmt = mysqli_prepare($conexion,
-    "UPDATE tb_productos
-     SET id_iva_condicion=?, id_rubro=?, nombre=?, descripcion=?,
-         precio_costo=?, precio_venta=?, codigo=?, pesable=?
-     WHERE id_productos=?"
-);
-mysqli_stmt_bind_param($stmt, 'iissddsii',
-    $iva, $rubro, $nombre, $descripcion, $costo, $venta, $codigo, $pesable, $id
-);
-echo json_encode(['success' => mysqli_stmt_execute($stmt) ? 'true' : 'false', 'tipo' => 'ticket']);
+echo json_encode(['success' => mysqli_stmt_execute($stmt) ? 'true' : 'false']);
 mysqli_stmt_close($stmt);

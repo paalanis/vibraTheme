@@ -20,17 +20,17 @@ while (mysqli_stmt_fetch($stmt_p)) {
 }
 mysqli_stmt_close($stmt_p);
 
-// Rubros
-$stmt_r = mysqli_prepare($conexion,
-    "SELECT id_rubro, nombre FROM tb_rubro ORDER BY nombre ASC"
+// Géneros (antes rubros)
+$stmt_g = mysqli_prepare($conexion,
+    "SELECT id_genero, nombre FROM tb_genero ORDER BY nombre ASC"
 );
-mysqli_stmt_execute($stmt_r);
-mysqli_stmt_bind_result($stmt_r, $r_id, $r_nombre);
-$rubros = [];
-while (mysqli_stmt_fetch($stmt_r)) {
-    $rubros[] = ['id' => $r_id, 'nombre' => mb_convert_encoding($r_nombre, 'UTF-8', 'ISO-8859-1')];
+mysqli_stmt_execute($stmt_g);
+mysqli_stmt_bind_result($stmt_g, $g_id, $g_nombre);
+$generos = [];
+while (mysqli_stmt_fetch($stmt_g)) {
+    $generos[] = ['id' => $g_id, 'nombre' => mb_convert_encoding($g_nombre, 'UTF-8', 'ISO-8859-1')];
 }
-mysqli_stmt_close($stmt_r);
+mysqli_stmt_close($stmt_g);
 ?>
 
 <form class="form-horizontal" id="formulario_reporte" role="form">
@@ -55,12 +55,12 @@ mysqli_stmt_close($stmt_r);
               <?php endforeach; ?>
             </select>
           </div>
-          <label class="col-lg-2 control-label">Rubro</label>
+          <label class="col-lg-2 control-label">Género</label>
           <div class="col-lg-4">
-            <select class="form-control" id="dato_rubro">
+            <select class="form-control" id="dato_genero">
               <option value="0">Todos</option>
-              <?php foreach ($rubros as $r): ?>
-                <option value="<?php echo $r['id']; ?>"><?php echo htmlspecialchars($r['nombre']); ?></option>
+              <?php foreach ($generos as $g): ?>
+                <option value="<?php echo $g['id']; ?>"><?php echo htmlspecialchars($g['nombre']); ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -90,7 +90,7 @@ mysqli_stmt_close($stmt_r);
     </div>
     <div class="col-lg-5">
       <div align="right">
-        <button type="button" id="boton_salir" onclick="inicio()" class="btn btn-default">Salir</button>
+        <button type="button" onclick="inicio()" class="btn btn-default">Salir</button>
         <button type="button" id="boton_buscar" class="btn btn-primary"
                 onclick="reporte('stock')">Buscar</button>
       </div>
@@ -102,8 +102,6 @@ mysqli_stmt_close($stmt_r);
 
 </form>
 
-<script type="text/javascript">
-  $(document).ready(function() {
-    $('#botonExcel1').hide();
-  });
+<script>
+$(document).ready(function() { $('#botonExcel1').hide(); });
 </script>

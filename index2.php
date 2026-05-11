@@ -114,11 +114,15 @@ if ($found_cierre && $id_cierre_val) {
                 <li><a href="#" class="menu" title="nuevo_cliente" onmouseup="cerrar()">Clientes</a></li>
                 <li><a href="#" class="menu" title="nuevo_proveedor" onmouseup="cerrar()">Proveedores</a></li>
                 <li role="separator" class="divider"></li>
-                <li><a href="#" class="menu" title="nuevo_producto" onmouseup="cerrar()">Productos</a></li>
+                <li><a href="#" class="menu" title="nuevo_abmproducto" onmouseup="cerrar()">Productos</a></li>
                 <li><a href="#" class="menu" title="nuevo_buscaproducto" onmouseup="cerrar()">Modificar Productos</a></li>
                 <li><a href="#" class="menu" title="nuevo_etiqueta" onmouseup="cerrar()">Imprimir Etiquetas</a></li>
                 <li role="separator" class="divider"></li>
-                <li><a href="#" class="menu" title="nuevo_rubro" onmouseup="cerrar()">Rubros</a></li>
+                <li><a href="#" class="menu" title="nuevo_genero" onmouseup="cerrar()">Géneros</a></li>
+                <li><a href="#" class="menu" title="nuevo_marca" onmouseup="cerrar()">Marcas</a></li>
+                <li><a href="#" class="menu" title="nuevo_tipo" onmouseup="cerrar()">Tipos</a></li>
+                <li><a href="#" class="menu" title="nuevo_color" onmouseup="cerrar()">Colores</a></li>
+                <li><a href="#" class="menu" title="nuevo_talle" onmouseup="cerrar()">Talles</a></li>
               </ul>
             </li>
             <li class="dropdown">

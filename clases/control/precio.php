@@ -1,27 +1,24 @@
-<?php 
+<?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-header("Location: ../../../index.php");
+    header("Location: ../../../index.php");
 }
-include '../../conexion/conexion.php';
+require_once '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
-printf("La conexión con el servidor de base de datos falló comuniquese con su administrador: %s\n", mysqli_connect_error());
-exit();
+    printf("Error de conexión: %s\n", mysqli_connect_error()); exit();
 }
-$id=$_REQUEST['id_producto'];
 
-$sqlprecio = "SELECT
-ifnull(tb_productos.precio_venta, '0') AS precio
-FROM
-tb_productos
-WHERE
-tb_productos.id_productos = '$id'";
-$rsprecio = mysqli_query($conexion, $sqlprecio); 
+$id = (int)($_REQUEST['id_producto'] ?? 0);
 
-$datos = mysqli_fetch_assoc($rsprecio)
-$precio=$datos['precio'];
+$stmt = mysqli_prepare($conexion,
+    "SELECT ROUND(precio_costo * (1 + margen_ganancia / 100), 2) AS precio
+     FROM tb_productos
+     WHERE id_productos = ?"
+);
+mysqli_stmt_bind_param($stmt, 'i', $id);
+mysqli_stmt_execute($stmt);
+mysqli_stmt_bind_result($stmt, $precio);
+mysqli_stmt_fetch($stmt);
+mysqli_stmt_close($stmt);
 
-$array=array('success'=>'true', 'precio'=>$precio); 
-echo json_encode($array);
-   
-?>
+echo json_encode(['success' => 'true', 'precio' => $precio ?? 0]);

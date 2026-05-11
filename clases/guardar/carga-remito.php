@@ -1,15 +1,11 @@
 <?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-    header("Location: ../../index.php"); exit();
+    header('Location: ../../index.php'); exit();
 }
 require_once '../../conexion/conexion.php';
 require_once '../../conexion/csrf.php';
 csrf_validate();
-if (mysqli_connect_errno()) {
-    echo json_encode(['success' => 'false']);
-    exit();
-}
 
 $proveedor  = (int)($_POST['dato_proveedor'] ?? 0);
 $sucursal   = (int)($_POST['dato_sucursal']  ?? 0);
@@ -19,24 +15,23 @@ $remito     = $sucursal . '-' . $remito_num;
 mysqli_begin_transaction($conexion);
 
 try {
-    // 1. Actualiza precio_costo en tb_productos para las líneas donde fue modificado.
-    //    Se ejecuta ANTES de cambiar estado a '1' para que el WHERE estado='0' funcione.
-    //    Solo actualiza si precio_costo IS NOT NULL (usuario lo modificó).
+    // 1. Actualiza precio_costo Y margen_ganancia en tb_productos donde el
+    //    usuario los modificó en el remito (IS NOT NULL).
     $stmt_precio = mysqli_prepare($conexion,
         "UPDATE tb_productos p
          JOIN tb_remitos r ON r.id_productos = p.id_productos
-         SET p.precio_costo = r.precio_costo
+         SET p.precio_costo     = COALESCE(r.precio_costo,     p.precio_costo),
+             p.margen_ganancia  = COALESCE(r.margen_ganancia,  p.margen_ganancia)
          WHERE r.estado = '0' AND r.numero = ? AND r.id_proveedores = ?
-           AND r.precio_costo IS NOT NULL"
+           AND (r.precio_costo IS NOT NULL OR r.margen_ganancia IS NOT NULL)"
     );
     mysqli_stmt_bind_param($stmt_precio, 'si', $remito, $proveedor);
     if (!mysqli_stmt_execute($stmt_precio)) {
-        throw new Exception('Error actualizando precio costo');
+        throw new Exception('Error actualizando precios en tb_productos');
     }
     mysqli_stmt_close($stmt_precio);
 
-    // 2. Ingresa stock: suma cantidad a tb_existencias.
-    //    VALUES(cantidad) compatible con MariaDB 10.6.
+    // 2. Actualiza stock en tb_existencias
     $stmt1 = mysqli_prepare($conexion,
         "INSERT INTO tb_existencias (id_productos, cantidad)
          SELECT id_productos, cantidad
@@ -50,8 +45,7 @@ try {
     }
     mysqli_stmt_close($stmt1);
 
-    // 3. Registra movimientos en tb_movimientos_stock (una fila por producto).
-    //    Se ejecuta ANTES de cambiar estado para que el WHERE estado='0' funcione.
+    // 3. Registra movimientos de stock
     $id_usuario = (int)($_SESSION['id_usuario'] ?? 0);
     $stmt_mov = mysqli_prepare($conexion,
         "INSERT INTO tb_movimientos_stock
@@ -66,7 +60,7 @@ try {
     }
     mysqli_stmt_close($stmt_mov);
 
-    // 5. Marca el remito como procesado.
+    // 4. Marca el remito como procesado
     $stmt2 = mysqli_prepare($conexion,
         "UPDATE tb_remitos SET estado = '1'
          WHERE estado = '0' AND numero = ? AND id_proveedores = ?"
