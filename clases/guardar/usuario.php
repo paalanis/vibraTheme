@@ -13,7 +13,7 @@ csrf_validate();
 // ── Leer y sanear inputs ──────────────────────────────────────────────────────
 $nombre    = trim($_POST['dato_nombre']    ?? '');
 $pass_raw  = $_POST['dato_pass']           ?? '';
-$tipo_user = trim($_POST['dato_tipo_user'] ?? '');
+$tipo_user = trim($_POST['dato_tipo']      ?? '');
 $autoriza  = trim($_POST['dato_autoriza']  ?? '');
 
 // Validaciones básicas

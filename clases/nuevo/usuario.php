@@ -42,7 +42,7 @@ if (mysqli_connect_errno()) {
           <div class="form-group form-group-sm">
             <label class="col-lg-3 control-label">Rol</label>
             <div class="col-lg-9">
-              <select class="form-control" id="dato_tipo_user" required>
+              <select class="form-control" id="dato_tipo" required>
                 <option value="">-- Seleccionar --</option>
                 <option value="admin">Administrador</option>
                 <option value="cajero">Cajero</option>
