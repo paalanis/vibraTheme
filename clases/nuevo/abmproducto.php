@@ -36,7 +36,7 @@ function opcionesHtml($rows, $selected = 0) {
 ?>
 
 <form class="form-horizontal" role="form" id="formulario_nuevo"
-      onsubmit="event.preventDefault(); guardarProducto()">
+      onsubmit="event.preventDefault(); nuevo('abmproducto')">
 
 <div class="modal-header">
   <h4 class="modal-title">Alta de Producto</h4>
@@ -191,42 +191,47 @@ function opcionesHtml($rows, $selected = 0) {
 
 </form>
 
-<script>
-// Manejo custom para mostrar errores descriptivos del servidor
-function guardarProducto() {
-  var pars = '';
-  $("#formulario_nuevo").find(':input').each(function() {
 
-  // ── Control de producto duplicado por atributos ─────────────────────
+<script>
+
+$(function() {
+
+  // Control de producto duplicado (nombre + 5 atributos)
   function verificarDuplicado() {
+    var nombre = $('#dato_nombre').val().trim();
     var marca  = parseInt($('#dato_marca').val())  || 0;
     var genero = parseInt($('#dato_genero').val()) || 0;
     var tipo   = parseInt($('#dato_tipo').val())   || 0;
     var talle  = parseInt($('#dato_talle').val())  || 0;
     var color  = parseInt($('#dato_color').val())  || 0;
 
-    if (!marca || !genero || !tipo || !talle || !color) {
+    if (!nombre || !marca || !genero || !tipo || !talle || !color) {
       $('#dup-estado').html('');
       $('#boton_guardar').prop('disabled', false);
       return;
     }
+
     $('#dup-estado').html('<span class="text-muted"><small>Verificando...</small></span>');
-    var nombre = $('#dato_nombre').val().trim();
     $.ajax({
       url      : 'clases/control/producto-dup.php',
-      data     : {nombre:nombre, marca:marca, genero:genero, tipo:tipo, talle:talle, color:color},
-      dataType : 'json', type: 'get',
+      data     : {nombre: nombre, marca: marca, genero: genero,
+                  tipo: tipo, talle: talle, color: color},
+      dataType : 'json',
+      type     : 'get',
       success  : function(data) {
         if (data.existe) {
           $('#dup-estado').html(
-            '<span class="text-danger"><span class="glyphicon glyphicon-ban-circle"></span> ' +
-            '<strong>Producto duplicado</strong> — ya existe: <em>' + data.nombre + '</em></span>'
+            '<span class="text-danger">' +
+            '<span class="glyphicon glyphicon-ban-circle"></span> ' +
+            '<strong>Producto duplicado</strong> — ya existe: <em>' + data.nombre + '</em>' +
+            '</span>'
           );
           $('#boton_guardar').prop('disabled', true);
         } else {
           $('#dup-estado').html(
-            '<span class="text-success"><span class="glyphicon glyphicon-ok"></span> ' +
-            'Combinación disponible</span>'
+            '<span class="text-success">' +
+            '<span class="glyphicon glyphicon-ok"></span> Combinación disponible' +
+            '</span>'
           );
           $('#boton_guardar').prop('disabled', false);
         }
@@ -234,20 +239,18 @@ function guardarProducto() {
     });
   }
 
-  // ── Precio venta calculado ──────────────────────────────────────────
+  // Precio venta calculado
   function calcularPrecioVenta() {
     var costo  = parseFloat($('#dato_costo').val())  || 0;
     var margen = parseFloat($('#dato_margen').val()) || 0;
-    if (costo > 0) {
-      $('#precio_venta_calc').val('$ ' + (costo * (1 + margen / 100)).toFixed(2));
-    } else {
-      $('#precio_venta_calc').val('');
-    }
+    $('#precio_venta_calc').val(
+      costo > 0 ? '$ ' + (costo * (1 + margen / 100)).toFixed(2) : ''
+    );
   }
 
   $('#dato_nombre').on('blur', verificarDuplicado);
   $('#dato_marca, #dato_genero, #dato_tipo, #dato_talle, #dato_color').on('change', verificarDuplicado);
   $('#dato_costo, #dato_margen').on('input', calcularPrecioVenta);
 
-})();
+});
 </script>
