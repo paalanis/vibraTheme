@@ -1,6 +1,10 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario'])) { header("Location: ../../index.php"); }
+if (!isset($_SESSION['usuario'])) { header("Location: ../../index.php"); exit(); }
+if (strtolower($_SESSION['tipo_user'] ?? '') !== 'admin') {
+    header('Location: ../../index2.php'); exit();
+}
+
 include '../../conexion/conexion.php';
 date_default_timezone_set("America/Argentina/Mendoza");
 $hoy = date("Y-m-d");

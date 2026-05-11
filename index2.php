@@ -124,6 +124,8 @@ if ($found_cierre && $id_cierre_val) {
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Configuración <span class="caret"></span></a>
               <ul class="dropdown-menu" role="menu">
                 <li><a href="#" class="menu" title="nuevo_configuracion" onmouseup="cerrar()">Parámetros por sucursal</a></li>
+                <li role="separator" class="divider"></li>
+                <li><a href="#" class="menu" title="nuevo_usuario" onmouseup="cerrar()">Usuarios</a></li>
               </ul>
             </li>
           ';}?>                

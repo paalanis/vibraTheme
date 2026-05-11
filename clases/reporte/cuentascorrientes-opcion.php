@@ -1,8 +1,12 @@
 <?php
 session_start();
 if (!isset($_SESSION['usuario'])) {
-header("Location: ../../index.php");
+    header('Location: ../../index.php'); exit();
 }
+if (strtolower($_SESSION['tipo_user'] ?? '') !== 'admin') {
+    header('Location: ../../index2.php'); exit();
+}
+
 include '../../conexion/conexion.php';
 if (mysqli_connect_errno()) {
 printf("La conexión con el servidor de base de datos falló comuniquese con su administrador: %s\n", mysqli_connect_error());
