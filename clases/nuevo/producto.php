@@ -90,14 +90,14 @@ $auto_codigo  = $auto_select ? $rows[0]['codigo'] : '';
 
   <!-- Fila 2: Costo + Margen + Precio venta + Botón -->
   <div class="row">
-    <div class="col-lg-3">
+    <div class="col-lg-4">
       <div class="input-group input-group-sm">
         <span class="input-group-addon">$ costo</span>
         <input class="form-control" autocomplete="off" id="dato_precio"
                type="number" min="0" step="0.01" placeholder="0.00">
       </div>
     </div>
-    <div class="col-lg-3">
+    <div class="col-lg-2">
       <div class="input-group input-group-sm">
         <input class="form-control" autocomplete="off" id="dato_margen"
                type="number" min="0" step="0.01" placeholder="0.00">

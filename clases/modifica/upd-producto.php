@@ -154,6 +154,7 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
             </button>
           </span>
         </div>
+        <div id="codigo-estado" style="margin-top:4px;min-height:18px"></div>
       </div>
     </div>
 
@@ -228,6 +229,41 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     }
     return (10 - (sum % 10)) % 10;
   }
+  function verificarCodigo(codigo) {
+    var idExcluir = $('#dato_id').val() || 0;
+    if (!codigo || codigo.length < 8) {
+      $('#codigo-estado').html('');
+      return;
+    }
+    $('#codigo-estado').html('<span class="text-muted"><small>Verificando...</small></span>');
+    $.ajax({
+      url      : 'clases/control/codigo.php',
+      data     : {codigo: codigo, id_excluir: idExcluir},
+      dataType : 'json',
+      type     : 'get',
+      success  : function(data) {
+        if (data.existe) {
+          $('#codigo-estado').html(
+            '<span class="text-danger">' +
+            '<span class="glyphicon glyphicon-warning-sign"></span> ' +
+            '<strong>Código duplicado</strong> — ya existe en: <em>' + data.nombre + '</em>' +
+            '</span>'
+          );
+          $('#dato_codigo').closest('.input-group').parent().addClass('has-error');
+          $('#boton_guardar').prop('disabled', true);
+        } else {
+          $('#codigo-estado').html(
+            '<span class="text-success">' +
+            '<span class="glyphicon glyphicon-ok"></span> Código disponible' +
+            '</span>'
+          );
+          $('#dato_codigo').closest('.input-group').parent().removeClass('has-error');
+          $('#boton_guardar').prop('disabled', false);
+        }
+      }
+    });
+  }
+
   function generarCodigo() {
     var marca  = parseInt($('#dato_marca').val())  || 0;
     var genero = parseInt($('#dato_genero').val()) || 0;
@@ -237,7 +273,9 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     if (!marca || !genero || !tipo || !talle || !color) return;
     var pad = function(n,w){ return String(n).padStart(w,'0'); };
     var base12 = '20'+pad(marca,2)+pad(genero,2)+pad(tipo,2)+pad(talle,2)+pad(color,2);
-    $('#dato_codigo').val(base12 + ean13check(base12));
+    var codigo = base12 + ean13check(base12);
+    $('#dato_codigo').val(codigo);
+    verificarCodigo(codigo);
   }
   function calcPV() {
     var costo  = parseFloat($('#dato_costo').val())  || 0;
@@ -251,5 +289,8 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
   $('.combo-codigo').on('change', generarCodigo);
   $('#btn-regenerar').on('click', generarCodigo);
   $('#dato_costo, #dato_margen').on('input', calcPV);
+  $('#dato_codigo').on('blur', function() {
+    verificarCodigo($(this).val().trim());
+  });
 })();
 </script>

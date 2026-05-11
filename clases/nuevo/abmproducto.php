@@ -131,7 +131,7 @@ function opcionesHtml($rows, $selected = 0) {
             </button>
           </span>
         </div>
-        <small class="text-muted">Se genera automáticamente. Editable si es necesario.</small>
+        <div id="codigo-estado" style="margin-top:4px;min-height:18px"></div>
       </div>
     </div>
 
@@ -210,6 +210,40 @@ function opcionesHtml($rows, $selected = 0) {
     return (10 - (sum % 10)) % 10;
   }
 
+  function verificarCodigo(codigo) {
+    if (!codigo || codigo.length < 8) {
+      $('#codigo-estado').html('');
+      return;
+    }
+    $('#codigo-estado').html('<span class="text-muted"><small>Verificando...</small></span>');
+    $.ajax({
+      url      : 'clases/control/codigo.php',
+      data     : {codigo: codigo},
+      dataType : 'json',
+      type     : 'get',
+      success  : function(data) {
+        if (data.existe) {
+          $('#codigo-estado').html(
+            '<span class="text-danger">' +
+            '<span class="glyphicon glyphicon-warning-sign"></span> ' +
+            '<strong>Código duplicado</strong> — ya existe en: <em>' + data.nombre + '</em>' +
+            '</span>'
+          );
+          $('#dato_codigo').closest('.input-group').parent().addClass('has-error');
+          $('#boton_guardar').prop('disabled', true);
+        } else {
+          $('#codigo-estado').html(
+            '<span class="text-success">' +
+            '<span class="glyphicon glyphicon-ok"></span> Código disponible' +
+            '</span>'
+          );
+          $('#dato_codigo').closest('.input-group').parent().removeClass('has-error');
+          $('#boton_guardar').prop('disabled', false);
+        }
+      }
+    });
+  }
+
   function generarCodigo() {
     var marca  = parseInt($('#dato_marca').val())  || 0;
     var genero = parseInt($('#dato_genero').val()) || 0;
@@ -223,6 +257,7 @@ function opcionesHtml($rows, $selected = 0) {
     var base12 = '20' + pad(marca,2) + pad(genero,2) + pad(tipo,2) + pad(talle,2) + pad(color,2);
     var codigo  = base12 + ean13check(base12);
     $('#dato_codigo').val(codigo);
+    verificarCodigo(codigo);
   }
 
   // ── Precio venta calculado ──────────────────────────────────────────
@@ -241,6 +276,10 @@ function opcionesHtml($rows, $selected = 0) {
   $('.combo-codigo').on('change', generarCodigo);
   $('#btn-regenerar').on('click', generarCodigo);
   $('#dato_costo, #dato_margen').on('input', calcularPrecioVenta);
+  // Verificar también cuando el usuario edita el código manualmente
+  $('#dato_codigo').on('blur', function() {
+    verificarCodigo($(this).val().trim());
+  });
 
 })();
 </script>

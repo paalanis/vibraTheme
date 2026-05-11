@@ -8,9 +8,12 @@ if (mysqli_connect_errno()) {
     printf("Error de conexión: %s\n", mysqli_connect_error()); exit();
 }
 
-$producto = (int)($_REQUEST['dato_producto'] ?? 0);
-$genero   = (int)($_REQUEST['dato_genero']   ?? 0);  // antes dato_rubro
-$estado   = $_REQUEST['dato_estado'] ?? 'todos';
+$genero  = (int)($_REQUEST['dato_genero']  ?? 0);
+$marca   = (int)($_REQUEST['dato_marca']   ?? 0);
+$tipo    = (int)($_REQUEST['dato_tipo']    ?? 0);
+$talle   = (int)($_REQUEST['dato_talle']   ?? 0);
+$color   = (int)($_REQUEST['dato_color']   ?? 0);
+$estado  = $_REQUEST['dato_estado'] ?? 'todos';
 
 // Lee stock_minimo de tb_configuracion
 $stock_minimo = 5;
@@ -32,16 +35,11 @@ $where  = ["1=1"];
 $params = [];
 $types  = '';
 
-if ($producto > 0) {
-    $where[]  = "p.id_productos = ?";
-    $params[] = $producto;
-    $types   .= 'i';
-}
-if ($genero > 0) {
-    $where[]  = "p.id_genero = ?";  // ← antes id_rubro
-    $params[] = $genero;
-    $types   .= 'i';
-}
+if ($genero > 0)  { $where[] = "p.id_genero = ?"; $params[] = $genero; $types .= 'i'; }
+if ($marca  > 0)  { $where[] = "p.id_marca  = ?"; $params[] = $marca;  $types .= 'i'; }
+if ($tipo   > 0)  { $where[] = "p.id_tipo   = ?"; $params[] = $tipo;   $types .= 'i'; }
+if ($talle  > 0)  { $where[] = "p.id_talle  = ?"; $params[] = $talle;  $types .= 'i'; }
+if ($color  > 0)  { $where[] = "p.id_color  = ?"; $params[] = $color;  $types .= 'i'; }
 
 $where_sql = implode(' AND ', $where);
 
@@ -50,15 +48,23 @@ $stmt = mysqli_prepare($conexion,
     "SELECT
         p.id_productos,
         p.nombre,
-        g.nombre                                              AS genero,
-        COALESCE(e.cantidad, 0)                              AS cantidad,
-        COALESCE(p.precio_costo, 0)                          AS precio_costo,
-        COALESCE(p.margen_ganancia, 0)                       AS margen,
+        g.nombre  AS genero,
+        m.nombre  AS marca,
+        ti.nombre AS tipo,
+        ta.nombre AS talle,
+        c.nombre  AS color,
+        COALESCE(e.cantidad, 0)                               AS cantidad,
+        COALESCE(p.precio_costo, 0)                           AS precio_costo,
+        COALESCE(p.margen_ganancia, 0)                        AS margen,
         ROUND(COALESCE(p.precio_costo,0) *
-              (1 + COALESCE(p.margen_ganancia,0) / 100), 2) AS precio_venta
+              (1 + COALESCE(p.margen_ganancia,0) / 100), 2)  AS precio_venta
      FROM tb_productos p
      LEFT JOIN tb_existencias e ON e.id_productos = p.id_productos
-     LEFT JOIN tb_genero g      ON g.id_genero    = p.id_genero
+     LEFT JOIN tb_genero  g  ON g.id_genero  = p.id_genero
+     LEFT JOIN tb_marca   m  ON m.id_marca   = p.id_marca
+     LEFT JOIN tb_tipo    ti ON ti.id_tipo   = p.id_tipo
+     LEFT JOIN tb_talle   ta ON ta.id_talle  = p.id_talle
+     LEFT JOIN tb_color   c  ON c.id_color   = p.id_color
      WHERE $where_sql
      ORDER BY p.nombre ASC"
 );
@@ -71,7 +77,7 @@ if (!empty($params)) {
 }
 
 mysqli_stmt_execute($stmt);
-mysqli_stmt_bind_result($stmt, $r_id, $r_producto, $r_genero, $r_cantidad, $r_costo, $r_margen, $r_venta);
+mysqli_stmt_bind_result($stmt, $r_id, $r_producto, $r_genero, $r_marca, $r_tipo, $r_talle, $r_color, $r_cantidad, $r_costo, $r_margen, $r_venta);
 
 $datos = [];
 while (mysqli_stmt_fetch($stmt)) {
@@ -79,6 +85,10 @@ while (mysqli_stmt_fetch($stmt)) {
         'id'       => $r_id,
         'producto' => mb_convert_encoding($r_producto ?? '', 'UTF-8', 'ISO-8859-1'),
         'genero'   => mb_convert_encoding($r_genero   ?? '', 'UTF-8', 'ISO-8859-1'),
+        'marca'    => mb_convert_encoding($r_marca    ?? '', 'UTF-8', 'ISO-8859-1'),
+        'tipo'     => mb_convert_encoding($r_tipo     ?? '', 'UTF-8', 'ISO-8859-1'),
+        'talle'    => mb_convert_encoding($r_talle    ?? '', 'UTF-8', 'ISO-8859-1'),
+        'color'    => mb_convert_encoding($r_color    ?? '', 'UTF-8', 'ISO-8859-1'),
         'cantidad' => (float)$r_cantidad,
         'costo'    => (float)$r_costo,
         'margen'   => (float)$r_margen,
@@ -98,15 +108,16 @@ if ($estado !== 'todos') {
 }
 
 // Export CSV
-if (isset($_POST['export_data'])) {
+if (isset($_REQUEST['export_data'])) {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="reporte_stock.csv"');
     $out = fopen('php://output', 'w');
     fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
-    fputcsv($out, ['Producto','Género','Stock','Precio Costo','Margen %','Precio Venta'], ';');
+    fputcsv($out, ['Producto','Género','Marca','Tipo','Talle','Color','Stock','Precio Costo','Margen %','Precio Venta'], ';');
     foreach ($datos as $d) {
         fputcsv($out, [
-            $d['producto'], $d['genero'], $d['cantidad'],
+            $d['producto'], $d['genero'], $d['marca'], $d['tipo'],
+            $d['talle'], $d['color'], $d['cantidad'],
             $d['costo'], $d['margen'], $d['venta']
         ], ';');
     }
@@ -168,12 +179,16 @@ function stock_clase($cantidad, $minimo) {
 </div>
 
 <div class="panel panel-default">
-  <div class="panel-body" style="overflow-y:auto;max-height:400px;padding:0">
+  <div class="panel-body" style="overflow-y:auto;min-height:200px;padding:0">
     <table class="table table-striped table-hover table-condensed" style="margin:0">
       <thead>
         <tr class="active">
           <th>Producto</th>
           <th>Género</th>
+          <th>Marca</th>
+          <th>Tipo</th>
+          <th>Talle</th>
+          <th>Color</th>
           <th style="text-align:right">Stock</th>
           <th style="text-align:right">$ Costo</th>
           <th style="text-align:right">Margen %</th>
@@ -188,6 +203,10 @@ function stock_clase($cantidad, $minimo) {
         <tr>
           <td><?php echo htmlspecialchars($d['producto']); ?></td>
           <td><?php echo htmlspecialchars($d['genero']); ?></td>
+          <td><?php echo htmlspecialchars($d['marca']); ?></td>
+          <td><?php echo htmlspecialchars($d['tipo']); ?></td>
+          <td><?php echo htmlspecialchars($d['talle']); ?></td>
+          <td><?php echo htmlspecialchars($d['color']); ?></td>
           <td style="text-align:right"><?php echo number_format($d['cantidad'], 2, ',', '.'); ?></td>
           <td style="text-align:right">$<?php echo number_format($d['costo'],    2, ',', '.'); ?></td>
           <td style="text-align:right"><?php echo number_format($d['margen'],   2, ',', '.'); ?>%</td>
@@ -202,15 +221,22 @@ function stock_clase($cantidad, $minimo) {
   </div>
 </div>
 
-<form method="post">
-  <input type="hidden" name="dato_producto" value="<?php echo $producto; ?>">
-  <input type="hidden" name="dato_genero"   value="<?php echo $genero; ?>">
-  <input type="hidden" name="dato_estado"   value="<?php echo htmlspecialchars($estado); ?>">
-  <div style="text-align:right;margin-top:10px">
-    <button type="submit" class="btn btn-info" name="export_data" value="1">
-      <span class="glyphicon glyphicon-save"></span> Descargar CSV
-    </button>
-  </div>
-</form>
+<div style="text-align:right;margin-top:10px">
+  <?php
+  $csv_params = http_build_query([
+    'dato_genero'  => $genero,
+    'dato_marca'   => $marca,
+    'dato_tipo'    => $tipo,
+    'dato_talle'   => $talle,
+    'dato_color'   => $color,
+    'dato_estado'  => $estado,
+    'export_data'  => '1',
+  ]);
+  ?>
+  <a href="clases/reporte/stock.php?<?php echo $csv_params; ?>"
+     target="_blank" class="btn btn-info">
+    <span class="glyphicon glyphicon-save"></span> Descargar CSV
+  </a>
+</div>
 
 <?php endif; ?>
