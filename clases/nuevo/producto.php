@@ -174,14 +174,29 @@ $auto_codigo  = $auto_select ? $rows[0]['codigo'] : '';
 })();
 
 function validarYCargar() {
-    var prod  = $('#dato_producto').val();
-    var cant  = parseFloat($('#dato_cantidad').val());
+    var prod   = $('#dato_producto').val();
+    var cant   = parseFloat($('#dato_cantidad').val());
+    var costo  = parseFloat($('#dato_precio').val());
+    var margen = $('#dato_margen').val();
+
     if (!prod || prod === '') {
         $('#dato_producto').focus();
         return;
     }
     if (!cant || cant <= 0) {
         $('#dato_cantidad').focus().select();
+        return;
+    }
+    if (!costo || costo <= 0) {
+        $('#dato_precio').focus().select();
+        $('#dato_precio').closest('.input-group').addClass('has-error');
+        setTimeout(function(){ $('#dato_precio').closest('.input-group').removeClass('has-error'); }, 2000);
+        return;
+    }
+    if (margen === '' || margen === null) {
+        $('#dato_margen').focus().select();
+        $('#dato_margen').closest('.input-group').addClass('has-error');
+        setTimeout(function(){ $('#dato_margen').closest('.input-group').removeClass('has-error'); }, 2000);
         return;
     }
     carga('producto');
