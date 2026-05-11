@@ -52,57 +52,79 @@ while (mysqli_stmt_fetch($stmt)) {
 mysqli_stmt_close($stmt);
 ?>
 
+<?php
+// Auto-selección: búsqueda por código y resultado único
+$buscar_tipo  = $_REQUEST['buscar'] ?? 'nombre';
+$auto_select  = ($buscar_tipo === 'codigo' && $filas === 1);
+$auto_codigo  = $auto_select ? $rows[0]['codigo'] : '';
+?>
 <?php if ($modo === 'remito'): ?>
-<!-- ── MODO REMITO: cantidad + precio_costo + margen editable ─── -->
-<div class="col-lg-3">
-    <select class="form-control" id="dato_producto" required>
-        <option value="">Seleccione producto</option>
-        <?php foreach ($rows as $row): ?>
-            <option value="<?php echo htmlspecialchars($row['codigo'], ENT_QUOTES, 'UTF-8'); ?>">
-                <?php echo htmlspecialchars(mb_convert_encoding($row['nombre'],'UTF-8','ISO-8859-1'), ENT_QUOTES, 'UTF-8'); ?>
-            </option>
+<!-- ── MODO REMITO ── -->
+<div class="col-lg-12">
+
+  <!-- Fila 1: Producto + Cantidad -->
+  <div class="row" style="margin-bottom:6px">
+    <div class="col-lg-8">
+      <select class="form-control input-sm" id="dato_producto" required>
+        <option value="">-- Seleccione producto --</option>
+        <?php foreach ($rows as $row):
+          $cod  = htmlspecialchars($row['codigo'], ENT_QUOTES, 'UTF-8');
+          $nom  = htmlspecialchars(mb_convert_encoding($row['nombre'],'UTF-8','ISO-8859-1'), ENT_QUOTES, 'UTF-8');
+          $sel  = ($auto_select && $row['codigo'] === $auto_codigo) ? ' selected' : '';
+        ?>
+          <option value="<?php echo $cod; ?>"<?php echo $sel; ?>><?php echo $nom; ?></option>
         <?php endforeach; ?>
         <?php if ($filas === 0): ?>
-            <option value="">NO EXISTE EL PRODUCTO</option>
+          <option value="">— Producto no encontrado —</option>
         <?php endif; ?>
-    </select>
-</div>
-<div class="col-lg-2">
-    <div class="input-group">
+      </select>
+    </div>
+    <div class="col-lg-4">
+      <div class="input-group input-group-sm">
         <span class="input-group-addon">Cant.</span>
         <input class="form-control" autocomplete="off" value="1"
                id="dato_cantidad" type="number" min="1" step="1" required>
+      </div>
     </div>
-</div>
-<div class="col-lg-2">
-    <div class="input-group">
+  </div>
+
+  <!-- Fila 2: Costo + Margen + Precio venta + Botón -->
+  <div class="row">
+    <div class="col-lg-3">
+      <div class="input-group input-group-sm">
         <span class="input-group-addon">$ costo</span>
-        <input class="form-control" autocomplete="off" value=""
-               id="dato_precio" type="number" min="0" step="0.01">
+        <input class="form-control" autocomplete="off" id="dato_precio"
+               type="number" min="0" step="0.01" placeholder="0.00">
+      </div>
     </div>
-</div>
-<div class="col-lg-2">
-    <div class="input-group">
-        <input class="form-control" autocomplete="off" value=""
-               id="dato_margen" type="number" min="0" step="0.01"
-               placeholder="<?php echo htmlspecialchars($GLOBALS['ultimo_margen'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+    <div class="col-lg-3">
+      <div class="input-group input-group-sm">
+        <input class="form-control" autocomplete="off" id="dato_margen"
+               type="number" min="0" step="0.01" placeholder="0.00">
         <span class="input-group-addon">%</span>
+      </div>
     </div>
-</div>
-<div class="col-lg-1">
-    <input class="form-control" autocomplete="off" id="precio_venta_muestra"
-           type="text" readonly placeholder="$ venta" style="background:#f5f5f5">
-</div>
-<div class="col-lg-1">
-    <button type="submit" id="boton_producto" class="btn btn-success" disabled>
+    <div class="col-lg-3">
+      <div class="input-group input-group-sm">
+        <span class="input-group-addon">$ venta</span>
+        <input class="form-control" id="precio_venta_muestra"
+               type="text" readonly style="background:#f5f5f5">
+      </div>
+    </div>
+    <div class="col-lg-3">
+      <button type="submit" id="boton_producto" class="btn btn-success btn-sm btn-block" disabled>
         Cargar
-    </button>
+      </button>
+    </div>
+  </div>
+
 </div>
 
 <script type="text/javascript">
 (function() {
-    var costos  = <?php echo json_encode($listacosto);  ?>;
-    var margenes= <?php echo json_encode($listamargen); ?>;
+    var costos   = <?php echo json_encode($listacosto);  ?>;
+    var margenes = <?php echo json_encode($listamargen); ?>;
+    var autoSel  = <?php echo $auto_select ? 'true' : 'false'; ?>;
 
     function calcPV() {
         var costo  = parseFloat($('#dato_precio').val())  || 0;
@@ -114,21 +136,29 @@ mysqli_stmt_close($stmt);
         }
     }
 
-    $('#dato_producto').change(function() {
-        var cod = $(this).val();
+    function seleccionar(cod) {
         if (cod !== '') {
             $('#dato_precio').val(costos[cod]   || '');
             $('#dato_margen').val(margenes[cod] || '');
             calcPV();
             $('#boton_producto').prop('disabled', false);
-            $('#dato_cantidad').focus();
+            $('#dato_cantidad').focus().select();
         } else {
             $('#dato_precio').val('');
             $('#dato_margen').val('');
             $('#precio_venta_muestra').val('');
             $('#boton_producto').prop('disabled', true);
         }
+    }
+
+    $('#dato_producto').on('change', function() {
+        seleccionar($(this).val());
     });
+
+    // Auto-selección si búsqueda por código único
+    if (autoSel) {
+        seleccionar($('#dato_producto').val());
+    }
 
     $('#dato_precio, #dato_margen').on('input', calcPV);
 })();
