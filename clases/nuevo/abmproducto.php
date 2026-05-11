@@ -121,7 +121,7 @@ function opcionesHtml($rows, $selected = 0) {
     <div class="form-group form-group-sm">
       <label class="col-lg-3 control-label">Código</label>
       <div class="col-lg-9">
-        <div class="input-group">
+        <div class="input-group input-group-sm">
           <input type="text" class="form-control" autocomplete="off"
                  id="dato_codigo" placeholder="Auto-generado" required>
           <span class="input-group-btn">
@@ -140,14 +140,14 @@ function opcionesHtml($rows, $selected = 0) {
       <div class="col-lg-9">
         <div class="row">
           <div class="col-xs-6">
-            <div class="input-group">
+            <div class="input-group input-group-sm">
               <span class="input-group-addon">$</span>
               <input type="number" class="form-control" autocomplete="off"
                      id="dato_costo" step="0.01" min="0" placeholder="0.00">
             </div>
           </div>
           <div class="col-xs-6">
-            <div class="input-group">
+            <div class="input-group input-group-sm">
               <input type="number" class="form-control" autocomplete="off"
                      id="dato_margen" step="0.01" min="0" max="999" placeholder="0.00">
               <span class="input-group-addon">%</span>
@@ -161,7 +161,7 @@ function opcionesHtml($rows, $selected = 0) {
     <div class="form-group form-group-sm">
       <label class="col-lg-3 control-label">Venta</label>
       <div class="col-lg-9">
-        <div class="input-group">
+        <div class="input-group input-group-sm">
           <span class="input-group-addon">$</span>
           <input type="text" class="form-control" id="precio_venta_calc"
                  readonly placeholder="Costo × (1 + Margen%)">
