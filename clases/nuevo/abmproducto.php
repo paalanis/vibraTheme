@@ -136,27 +136,26 @@ function opcionesHtml($rows, $selected = 0) {
     </div>
 
     <div class="form-group form-group-sm">
-      <label class="col-lg-3 control-label">Costo</label>
-      <div class="col-lg-5">
-        <div class="input-group">
-          <span class="input-group-addon">$</span>
-          <input type="number" class="form-control" autocomplete="off"
-                 id="dato_costo" step="0.01" min="0" placeholder="0.00">
+      <label class="col-lg-3 control-label">Costo / Margen</label>
+      <div class="col-lg-9">
+        <div class="row">
+          <div class="col-xs-6">
+            <div class="input-group">
+              <span class="input-group-addon">$</span>
+              <input type="number" class="form-control" autocomplete="off"
+                     id="dato_costo" step="0.01" min="0" placeholder="0.00">
+            </div>
+          </div>
+          <div class="col-xs-6">
+            <div class="input-group">
+              <input type="number" class="form-control" autocomplete="off"
+                     id="dato_margen" step="0.01" min="0" max="999" placeholder="0.00">
+              <span class="input-group-addon">%</span>
+            </div>
+          </div>
         </div>
+        <small class="text-muted">Se actualizan desde el remito. Opcionales al cargar.</small>
       </div>
-      <small class="col-lg-4 text-muted" style="padding-top:6px">Desde remito</small>
-    </div>
-
-    <div class="form-group form-group-sm">
-      <label class="col-lg-3 control-label">Margen</label>
-      <div class="col-lg-5">
-        <div class="input-group">
-          <input type="number" class="form-control" autocomplete="off"
-                 id="dato_margen" step="0.01" min="0" max="999" placeholder="0.00">
-          <span class="input-group-addon">%</span>
-        </div>
-      </div>
-      <small class="col-lg-4 text-muted" style="padding-top:6px">Desde remito</small>
     </div>
 
     <div class="form-group form-group-sm">
