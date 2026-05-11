@@ -148,13 +148,20 @@ var ULTIMO_MARGEN = <?php echo $ultimo_margen !== null ? json_encode($ultimo_mar
     // Relleno de ceros al salir del campo
     $('#dato_sucursal').on('blur', function() {
       var v = $(this).val().replace(/\D/g, '');
-      if (v !== '') $(this).val(v.padStart(4, '0'));
+      if (v !== '') {
+        $(this).val(v.padStart(4, '0'));
+        // .val() programático no dispara 'change' en todos los browsers → forzamos
+        $(this).trigger('change');
+      }
     });
     $('#dato_remito').on('blur', function() {
       var v = $(this).val().replace(/\D/g, '');
-      if (v !== '') $(this).val(v.padStart(8, '0'));
+      if (v !== '') {
+        $(this).val(v.padStart(8, '0'));
+        $(this).trigger('change');
+      }
     });
-    // Solo permite dígitos
+    // Solo permite dígitos mientras escribe
     $('#dato_sucursal, #dato_remito').on('input', function() {
       $(this).val($(this).val().replace(/\D/g, ''));
     });

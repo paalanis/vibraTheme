@@ -66,11 +66,23 @@ $stmt = mysqli_prepare($conexion,
      (fecha, id_proveedores, numero, obs, id_productos, cantidad, precio_costo, margen_ganancia)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 );
+
+if (!$stmt) {
+    echo json_encode(['success' => 'false', 'error' => 'prepare: ' . mysqli_error($conexion)]);
+    exit();
+}
+
 mysqli_stmt_bind_param($stmt, 'sissiddd',
     $fecha, $proveedor, $remito, $obs, $id_producto,
     $cantidad, $precio_costo, $margen_ganancia
 );
-mysqli_stmt_execute($stmt);
+
+if (!mysqli_stmt_execute($stmt)) {
+    $error = mysqli_stmt_error($stmt);
+    mysqli_stmt_close($stmt);
+    echo json_encode(['success' => 'false', 'error' => $error]);
+    exit();
+}
 mysqli_stmt_close($stmt);
 
 echo json_encode(['success' => 'true', 'remito' => $remito, 'proveedor' => $proveedor]);

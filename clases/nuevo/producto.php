@@ -112,7 +112,8 @@ $auto_codigo  = $auto_select ? $rows[0]['codigo'] : '';
       </div>
     </div>
     <div class="col-lg-3">
-      <button type="submit" id="boton_producto" class="btn btn-success btn-sm btn-block" disabled>
+      <button type="button" id="boton_producto" class="btn btn-success btn-sm btn-block" disabled
+              onclick="validarYCargar()">
         Cargar
       </button>
     </div>
@@ -161,7 +162,30 @@ $auto_codigo  = $auto_select ? $rows[0]['codigo'] : '';
     }
 
     $('#dato_precio, #dato_margen').on('input', calcPV);
+
+    // Watchdog: fx.js resetea dato_producto con .val('') sin disparar 'change'
+    // → el botón quedaría habilitado con selector vacío. Esto lo corrige.
+    var _watchdog = setInterval(function() {
+        if ($('#dato_producto').val() === '') {
+            $('#boton_producto').prop('disabled', true);
+        }
+    }, 250);
+
 })();
+
+function validarYCargar() {
+    var prod  = $('#dato_producto').val();
+    var cant  = parseFloat($('#dato_cantidad').val());
+    if (!prod || prod === '') {
+        $('#dato_producto').focus();
+        return;
+    }
+    if (!cant || cant <= 0) {
+        $('#dato_cantidad').focus().select();
+        return;
+    }
+    carga('producto');
+}
 </script>
 
 <?php else: ?>
