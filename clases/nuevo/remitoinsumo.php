@@ -97,7 +97,7 @@ $csrf = csrf_token();
         $('#dato_proveedor').attr('disabled', true);
         $('#dato_sucursal').attr('disabled', true);
         $('#dato_remito').attr('disabled', true);
-        $('#boton_confirmar').attr('disabled', false);
+        $('#boton_guardar').attr('disabled', false);
         $('#boton_producto').attr('disabled', true);
       </script>
 
@@ -107,7 +107,7 @@ $csrf = csrf_token();
         $('#dato_proveedor').attr('disabled', false);
         $('#dato_sucursal').attr('disabled', false);
         $('#dato_remito').attr('disabled', false);
-        $('#boton_confirmar').attr('disabled', true);
+        $('#boton_guardar').attr('disabled', true);
         $('#boton_producto').attr('disabled', true);
       </script>
     <?php endif; ?>
