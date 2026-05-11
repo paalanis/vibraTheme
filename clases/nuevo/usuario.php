@@ -34,8 +34,16 @@ if (mysqli_connect_errno()) {
           <div class="form-group form-group-sm">
             <label class="col-lg-3 control-label">Contraseña</label>
             <div class="col-lg-9">
-              <input type="password" class="form-control" autocomplete="new-password"
-                     id="dato_pass" placeholder="Contraseña" required>
+              <div class="input-group">
+                <input type="password" class="form-control" autocomplete="new-password"
+                       id="dato_pass" placeholder="Contraseña" required>
+                <span class="input-group-btn">
+                  <button class="btn btn-default" type="button" id="btn_toggle_pass"
+                          onclick="togglePass()" tabindex="-1">
+                    <span class="glyphicon glyphicon-eye-open" id="ico_pass"></span>
+                  </button>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -133,3 +141,17 @@ if (mysqli_connect_errno()) {
   </div>
 
 </form>
+
+<script type="text/javascript">
+function togglePass() {
+    var campo = document.getElementById('dato_pass');
+    var icono = document.getElementById('ico_pass');
+    if (campo.type === 'password') {
+        campo.type = 'text';
+        icono.className = 'glyphicon glyphicon-eye-close';
+    } else {
+        campo.type = 'password';
+        icono.className = 'glyphicon glyphicon-eye-open';
+    }
+}
+</script>

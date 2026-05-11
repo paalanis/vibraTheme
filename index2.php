@@ -90,23 +90,24 @@ if ($found_cierre && $id_cierre_val) {
                 <li role="separator" class="divider"></li>
                 <li><a href="#" class="menu" title="nuevo_arqueocaja" onmouseup="cerrar()">Arqueo de Caja</a></li>
                 <li><a href="#" class="menu" title="nuevo_retirocaja" onmouseup="cerrar()">Retiro de Caja</a></li>
-                <?php  if (strtolower($_SESSION['tipo_user']) == 'admin') {
-            echo ' 
+                <?php if (strtolower($_SESSION['tipo_user']) == 'admin'): ?>
                 <li role="separator" class="divider"></li>
                 <li><a href="#" class="menu" title="reporte_ventas-opcion" onmouseup="cerrar()">Reporte de Ventas</a></li>
                 <li><a href="#" class="menu" title="reporte_cuentascorrientes-opcion" onmouseup="cerrar()">Reporte de Cuentas corrientes</a></li>
-                </ul>
-              </li>
+                <?php endif; ?>
+              </ul>
+            </li>
+            <?php if (strtolower($_SESSION['tipo_user']) == 'admin'): ?>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Compras <span class="caret"></span></a>
               <ul class="dropdown-menu" role="menu">
                 <li><a href="#" class="menu" title="construccion_construccion" onmouseup="cerrar()">Nueva factura</a></li>
                 <li><a href="#" class="menu" title="nuevo_remito" onmouseup="cerrar()">Nuevo Remito</a></li>
                 <li role="separator" class="divider"></li>
-                <li><a href="#" class="menu" title="construccion_construccion" onmouseup="cerrar()" >Reporte de compras</a></li>
+                <li><a href="#" class="menu" title="construccion_construccion" onmouseup="cerrar()">Reporte de compras</a></li>
                 <li><a href="#" class="menu" title="reporte_stock-opcion" onmouseup="cerrar()">Reporte de stock</a></li>
               </ul>
-            </li>   
+            </li>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Altas <span class="caret"></span></a>
               <ul class="dropdown-menu" role="menu">
@@ -128,7 +129,7 @@ if ($found_cierre && $id_cierre_val) {
                 <li><a href="#" class="menu" title="nuevo_usuario" onmouseup="cerrar()">Usuarios</a></li>
               </ul>
             </li>
-          ';}?>                
+            <?php endif; ?>
           </ul>
 
           <ul class="nav navbar-nav navbar-right">
