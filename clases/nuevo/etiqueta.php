@@ -10,26 +10,69 @@ if (mysqli_connect_errno()) {
     exit();
 }
 
-// Búsqueda AJAX
+/* ── AJAX: cargar marcas ─────────────────────────────────────── */
+if (isset($_POST['accion']) && $_POST['accion'] === 'marcas') {
+    $rs   = mysqli_query($conexion, "SELECT id_marca, nombre FROM tb_marca ORDER BY nombre ASC");
+    $rows = [];
+    while ($r = mysqli_fetch_assoc($rs)) {
+        $rows[] = ['id' => $r['id_marca'], 'nombre' => $r['nombre']];
+    }
+    header('Content-Type: application/json');
+    echo json_encode($rows);
+    exit();
+}
+
+/* ── AJAX: buscar productos ──────────────────────────────────── */
 if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
-    $buscar = '%' . mysqli_real_escape_string($conexion, $_POST['q']) . '%';
-    $sql = "SELECT p.id_productos, p.nombre, p.codigo, p.precio_venta, p.color,
-                   t.nombre AS talle
+    $id_marca = intval($_POST['id_marca'] ?? 0);
+    $q        = trim($_POST['q'] ?? '');
+
+    if ($id_marca === 0 && strlen($q) < 2) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'filtro_requerido']);
+        exit();
+    }
+
+    $where = [];
+    if ($id_marca > 0) {
+        $where[] = "p.id_marca = $id_marca";
+    }
+    if (strlen($q) >= 2) {
+        $buscar  = '%' . mysqli_real_escape_string($conexion, $q) . '%';
+        $where[] = "(p.nombre LIKE '$buscar' OR p.codigo LIKE '$buscar')";
+    }
+    $whereSQL = implode(' AND ', $where);
+
+    $sql = "SELECT
+                p.id_productos,
+                p.nombre,
+                p.codigo,
+                ROUND(p.precio_costo * (1 + p.margen_ganancia / 100), 2) AS precio_venta,
+                t.nombre AS talle,
+                c.nombre AS color,
+                m.nombre AS marca
             FROM tb_productos p
             LEFT JOIN tb_talle t ON p.id_talle = t.id_talle
-            WHERE p.nombre LIKE '$buscar' OR p.codigo LIKE '$buscar'
+            LEFT JOIN tb_color c ON p.id_color  = c.id_color
+            LEFT JOIN tb_marca m ON p.id_marca  = m.id_marca
+            WHERE $whereSQL
             ORDER BY p.nombre ASC
             LIMIT 100";
+
     $rs   = mysqli_query($conexion, $sql);
     $rows = [];
     while ($r = mysqli_fetch_assoc($rs)) {
+        $lista = (float)$r['precio_venta'];
+        $efvo  = $lista * 0.90; // 10% descuento — hardcodeado hasta módulo ofertas
         $rows[] = [
             'id'     => $r['id_productos'],
             'nombre' => $r['nombre'],
             'codigo' => $r['codigo'],
-            'precio' => number_format((float)$r['precio_venta'], 2, '.', ''),
-            'color'  => $r['color'],
-            'talle'  => $r['talle'],
+            'lista'  => number_format($lista, 2, ',', '.'),
+            'efvo'   => number_format($efvo,  2, ',', '.'),
+            'talle'  => $r['talle']  ?? '',
+            'color'  => $r['color']  ?? '',
+            'marca'  => $r['marca']  ?? '',
         ];
     }
     header('Content-Type: application/json');
@@ -80,37 +123,55 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
   </div>
 </div>
 
-<!-- Buscador + tabla -->
+<!-- Filtros + tabla -->
 <div class="well bs-component">
   <div class="row">
     <div class="col-lg-12">
       <fieldset>
+
         <div class="form-group form-group-sm">
-          <label class="col-lg-2 control-label">Buscar producto</label>
-          <div class="col-lg-5">
+          <label class="col-lg-2 control-label">Marca</label>
+          <div class="col-lg-3">
+            <select class="form-control" id="etq_marca">
+              <option value="0">— Todas —</option>
+            </select>
+          </div>
+          <label class="col-lg-1 control-label">Buscar</label>
+          <div class="col-lg-3">
             <input type="text" class="form-control" id="etq_buscar"
                    autocomplete="off" placeholder="Nombre o código...">
           </div>
-          <div class="col-lg-5">
-            <button type="button" class="btn btn-default btn-sm" id="etq_btn_todos">Ver todos</button>
+          <div class="col-lg-3">
+            <button type="button" class="btn btn-default btn-sm" id="etq_btn_buscar">
+              <span class="glyphicon glyphicon-search"></span> Buscar
+            </button>
             <button type="button" class="btn btn-primary btn-sm" id="etq_btn_imprimir" disabled>
-              <span class="glyphicon glyphicon-print"></span> Imprimir seleccionados
+              <span class="glyphicon glyphicon-print"></span> Imprimir
             </button>
           </div>
         </div>
+
         <div class="form-group form-group-sm">
           <div class="col-lg-offset-2 col-lg-10">
             <span id="etq_contador" class="label label-info">0 productos seleccionados</span>
             &nbsp;<span id="etq_msg" class="label label-default" style="display:none;"></span>
           </div>
         </div>
+
       </fieldset>
     </div>
   </div>
 
   <div class="row">
     <div class="col-lg-12">
-      <div id="etq_loading" class="text-center" style="display:none;"><div class="loadingsm"></div></div>
+
+      <div id="etq_loading" class="text-center" style="display:none;">
+        <div class="loadingsm"></div>
+      </div>
+
+      <div id="etq_aviso" class="text-center text-muted" style="padding:14px;">
+        Seleccioná una marca o ingresá un texto para buscar.
+      </div>
 
       <table class="table table-hover table-condensed table-bordered"
              id="etq_tabla" style="display:none;">
@@ -119,8 +180,14 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
             <th style="width:36px;text-align:center;">
               <input type="checkbox" id="etq_sel_todos" title="Seleccionar todos">
             </th>
-            <th>Código</th><th>Nombre</th><th>Talle</th><th>Color</th><th>Precio</th>
-            <th style="width:68px;">Cant.</th>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Marca</th>
+            <th>Talle</th>
+            <th>Color</th>
+            <th>Lista</th>
+            <th>Efvo (−10%)</th>
+            <th style="width:64px;">Cant.</th>
           </tr>
         </thead>
         <tbody id="etq_tbody"></tbody>
@@ -165,9 +232,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     qz.security.setCertificatePromise(function (resolve) {
       resolve(QZ_CERT);
     });
-
     qz.security.setSignatureAlgorithm("SHA512");
-
     qz.security.setSignaturePromise(function (toSign) {
       return function (resolve, reject) {
         $.post('clases/nuevo/etiqueta_sign.php', { data: toSign })
@@ -205,9 +270,21 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
 
   setTimeout(function () { if (typeof qz !== 'undefined') conectar(); }, 700);
 
+  /* ── Cargar marcas ──────────────────────── */
+  $.post('clases/nuevo/etiqueta.php', { accion: 'marcas' }, function (data) {
+    var $sel = $('#etq_marca');
+    $.each(data, function (i, m) {
+      $sel.append('<option value="' + m.id + '">' + esc(m.nombre) + '</option>');
+    });
+  }, 'json');
+
   /* ── Tabla ──────────────────────────────── */
   function contarSeleccionados() { return $('#etq_tbody input[type=checkbox]:checked').length; }
-  function refrescarBoton() { $('#etq_btn_imprimir').prop('disabled', !conectado || contarSeleccionados() === 0); }
+
+  function refrescarBoton() {
+    $('#etq_btn_imprimir').prop('disabled', !conectado || contarSeleccionados() === 0);
+  }
+
   function actualizarContador() {
     var n = contarSeleccionados();
     $('#etq_contador').text(n + ' producto' + (n !== 1 ? 's' : '') + ' seleccionado' + (n !== 1 ? 's' : ''));
@@ -218,52 +295,89 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
 
   function renderTabla(lista) {
     var $b = $('#etq_tbody').empty();
-    if (!lista || !lista.length) { $('#etq_tabla').hide(); $('#etq_vacio').show(); return; }
+    $('#etq_aviso').hide();
+
+    if (!lista || !lista.length) {
+      $('#etq_tabla').hide(); $('#etq_vacio').show(); return;
+    }
     $('#etq_vacio').hide(); $('#etq_tabla').show();
+
     $.each(lista, function (i, p) {
       $b.append(
         '<tr>' +
         '<td style="text-align:center;vertical-align:middle;">' +
           '<input type="checkbox" class="etq_chk"' +
-          ' data-nombre="' + esc(p.nombre) + '" data-codigo="' + esc(p.codigo) + '"' +
-          ' data-precio="' + p.precio + '" data-color="' + esc(p.color) + '"' +
-          ' data-talle="' + esc(p.talle) + '"></td>' +
+          ' data-nombre="' + esc(p.nombre) + '"' +
+          ' data-codigo="' + esc(p.codigo) + '"' +
+          ' data-lista="'  + esc(p.lista)  + '"' +
+          ' data-efvo="'   + esc(p.efvo)   + '"' +
+          ' data-talle="'  + esc(p.talle)  + '"' +
+          ' data-color="'  + esc(p.color)  + '">' +
+        '</td>' +
         '<td style="vertical-align:middle;font-family:monospace;">' + esc(p.codigo) + '</td>' +
         '<td style="vertical-align:middle;">'  + esc(p.nombre) + '</td>' +
+        '<td style="vertical-align:middle;">'  + esc(p.marca)  + '</td>' +
         '<td style="vertical-align:middle;">'  + esc(p.talle)  + '</td>' +
         '<td style="vertical-align:middle;">'  + esc(p.color)  + '</td>' +
-        '<td style="vertical-align:middle;">$' + p.precio      + '</td>' +
+        '<td style="vertical-align:middle;">$' + esc(p.lista)  + '</td>' +
+        '<td style="vertical-align:middle;">$' + esc(p.efvo)   + '</td>' +
         '<td style="vertical-align:middle;">' +
           '<input type="number" class="form-control input-sm etq_qty"' +
-          ' value="1" min="1" max="99" style="width:58px;"></td>' +
+          ' value="1" min="1" max="99" style="width:58px;">' +
+        '</td>' +
         '</tr>'
       );
     });
     actualizarContador();
   }
 
-  function buscar(q) {
-    $('#etq_loading').show(); $('#etq_tabla').hide(); $('#etq_vacio').hide();
-    $.post('clases/nuevo/etiqueta.php', { accion: 'buscar', q: q }, function (d) {
-      $('#etq_loading').hide(); renderTabla(d);
-    }, 'json').fail(function () {
+  function buscar() {
+    var id_marca = $('#etq_marca').val();
+    var q        = $('#etq_buscar').val().trim();
+
+    if (id_marca === '0' && q.length < 2) {
+      mostrarMsg('Seleccioná una marca o ingresá al menos 2 caracteres', 'warning');
+      return;
+    }
+
+    $('#etq_loading').show();
+    $('#etq_tabla').hide();
+    $('#etq_vacio').hide();
+    $('#etq_aviso').hide();
+
+    $.post('clases/nuevo/etiqueta.php', { accion: 'buscar', id_marca: id_marca, q: q },
+      function (data) {
+        $('#etq_loading').hide();
+        if (data && data.error === 'filtro_requerido') {
+          mostrarMsg('Ingresá al menos un filtro', 'warning'); return;
+        }
+        renderTabla(data);
+      }, 'json'
+    ).fail(function () {
       $('#etq_loading').hide();
       $('#etq_vacio').text('Error al consultar la base de datos.').show();
     });
   }
 
-  var timer;
-  $('#etq_buscar').on('input', function () {
-    clearTimeout(timer);
-    var q = $(this).val().trim();
-    if (q.length < 2) return;
-    timer = setTimeout(function () { buscar(q); }, 350);
+  $('#etq_btn_buscar').on('click', buscar);
+
+  $('#etq_buscar').on('keypress', function (e) {
+    if (e.which === 13) buscar();
   });
-  $('#etq_btn_todos').on('click', function () { $('#etq_buscar').val(''); buscar(''); });
+
+  $('#etq_marca').on('change', function () {
+    $('#etq_tabla').hide();
+    $('#etq_vacio').hide();
+    $('#etq_aviso').hide();
+    if ($(this).val() !== '0') buscar();
+  });
+
   $(document).on('change', '.etq_chk', actualizarContador);
   $(document).on('input',  '.etq_qty', function () { if (+$(this).val() < 1) $(this).val(1); });
+
   $('#etq_sel_todos').on('change', function () {
-    $('.etq_chk').prop('checked', $(this).is(':checked')); actualizarContador();
+    $('.etq_chk').prop('checked', $(this).is(':checked'));
+    actualizarContador();
   });
 
   /* ── Imprimir ───────────────────────────── */
@@ -274,10 +388,13 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
       var c = $(this).find('.etq_chk');
       if (c.is(':checked')) {
         items.push({
-          nombre: c.data('nombre'), codigo: c.data('codigo'),
-          precio: c.data('precio'), color:  c.data('color'),
+          nombre: c.data('nombre'),
+          codigo: c.data('codigo'),
+          lista:  c.data('lista'),
+          efvo:   c.data('efvo'),
           talle:  c.data('talle'),
-          qty: parseInt($(this).find('.etq_qty').val()) || 1
+          color:  c.data('color'),
+          qty:    parseInt($(this).find('.etq_qty').val()) || 1
         });
       }
     });
@@ -286,11 +403,11 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
   });
 
   function imprimirItems(items) {
-    var printer = $('#etq_printer').val().trim() || 'XP-470B';
-    var anchoMM = parseFloat($('#etq_ancho').val()) || 50;
-    var altoMM  = parseFloat($('#etq_alto').val())  || 30;
-    var anchoIn = +(anchoMM / 25.4).toFixed(4);
-    var altoIn  = +(altoMM  / 25.4).toFixed(4);
+    var printer  = $('#etq_printer').val().trim() || 'XP-470B';
+    var anchoMM  = parseFloat($('#etq_ancho').val()) || 50;
+    var altoMM   = parseFloat($('#etq_alto').val())  || 30;
+    var anchoIn  = +(anchoMM / 25.4).toFixed(4);
+    var altoIn   = +(altoMM  / 25.4).toFixed(4);
 
     var total = 0;
     items.forEach(function (p) { total += p.qty; });
@@ -304,7 +421,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
       colorType: 'blackwhite', copies: 1
     });
 
-    var cadena = Promise.resolve();
+    var cadena   = Promise.resolve();
     var enviados = 0;
 
     items.forEach(function (p) {
@@ -340,30 +457,53 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     svgEl.setAttribute('xmlns', svgNS);
     var bcOK = false;
     try {
-      JsBarcode(svgEl, p.codigo, { format: 'CODE128', width: 1.4,
-        height: 28, displayValue: false, margin: 1 });
+      JsBarcode(svgEl, p.codigo, {
+        format: 'CODE128', width: 1.4, height: 28,
+        displayValue: false, margin: 1
+      });
       bcOK = true;
     } catch (e) {}
 
-    var bcHtml   = bcOK ? '<div style="width:100%;text-align:center;">' + svgEl.outerHTML + '</div>' : '';
-    var variante = [p.talle, p.color].filter(Boolean).join('  ');
+    var bcHtml = bcOK
+      ? '<div style="width:100%;text-align:center;">' + svgEl.outerHTML + '</div>'
+      : '';
 
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' +
       '* { box-sizing:border-box; margin:0; padding:0; }' +
-      'body { width:' + anchoMM + 'mm; height:' + altoMM + 'mm;' +
-        'overflow:hidden; font-family:Arial,sans-serif; padding:1.5mm 2mm;' +
-        'display:flex; flex-direction:column; justify-content:space-between; }' +
+      'body {' +
+        'width:'  + anchoMM + 'mm;' +
+        'height:' + altoMM  + 'mm;' +
+        'overflow:hidden; font-family:Arial,sans-serif;' +
+        'padding:1.5mm 2mm;' +
+        'display:flex; flex-direction:column; justify-content:space-between;' +
+      '}' +
       '.bc svg { width:100%; height:auto; max-height:10mm; display:block; }' +
-      '.sku     { font-size:6pt;   color:#444; font-family:monospace; margin-top:0.5mm; }' +
-      '.nombre  { font-size:8pt;   font-weight:bold; color:#111; line-height:1.2; margin:1mm 0 0.5mm; }' +
-      '.variante{ font-size:6.5pt; color:#555; }' +
-      '.precio  { font-size:9.5pt; font-weight:bold; color:#000; }' +
+      '.bc-num  { text-align:center; font-size:6pt; font-family:monospace; color:#333; margin:0.5mm 0; }' +
+      '.nombre  { font-size:7.5pt; font-weight:bold; color:#111; line-height:1.2; }' +
+      '.variante{ display:flex; justify-content:space-between; font-size:6.5pt; color:#555; margin-top:0.5mm; }' +
+      '.precios { display:flex; justify-content:space-between; align-items:flex-end;' +
+                 'border-top:0.4px solid #aaa; padding-top:1mm; margin-top:1mm; }' +
+      '.precio-bloque { display:flex; flex-direction:column; }' +
+      '.precio-label  { font-size:5.5pt; color:#666; margin-bottom:0.5mm; }' +
+      '.precio-valor  { font-size:9pt; font-weight:bold; color:#000; }' +
       '</style></head><body>' +
-      '<div class="bc">' + bcHtml + '</div>' +
-      '<div class="sku">'     + he(p.codigo)  + '</div>' +
-      '<div class="nombre">'  + he(p.nombre)  + '</div>' +
-      (variante ? '<div class="variante">' + he(variante) + '</div>' : '') +
-      '<div class="precio">$' + p.precio + '</div>' +
+        '<div class="bc">' + bcHtml + '</div>' +
+        '<div class="bc-num">' + he(p.codigo) + '</div>' +
+        '<div class="nombre">'  + he(p.nombre) + '</div>' +
+        '<div class="variante">' +
+          '<span>' + he(p.talle) + '</span>' +
+          '<span>' + he(p.color) + '</span>' +
+        '</div>' +
+        '<div class="precios">' +
+          '<div class="precio-bloque">' +
+            '<span class="precio-label">Lista</span>' +
+            '<span class="precio-valor">$' + he(p.lista) + '</span>' +
+          '</div>' +
+          '<div class="precio-bloque" style="text-align:right;">' +
+            '<span class="precio-label">Efvo</span>' +
+            '<span class="precio-valor">$' + he(p.efvo) + '</span>' +
+          '</div>' +
+        '</div>' +
       '</body></html>';
   }
 
@@ -373,6 +513,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
       .replace(/&/g,'&amp;').replace(/</g,'&lt;')
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+
   function mostrarMsg(txt, tipo) {
     $('#etq_msg')
       .removeClass('label-default label-info label-success label-warning label-danger')
