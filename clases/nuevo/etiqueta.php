@@ -474,7 +474,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
         'width:'  + anchoMM + 'mm;' +
         'height:' + altoMM  + 'mm;' +
         'overflow:hidden; font-family:Arial,sans-serif;' +
-        'padding:1.5mm 2mm;' +
+        'padding:1.5mm 2mm 4mm 2mm;' +
         'display:flex; flex-direction:column; justify-content:space-between;' +
       '}' +
       '.bc svg { width:100%; height:auto; max-height:10mm; display:block; }' +
