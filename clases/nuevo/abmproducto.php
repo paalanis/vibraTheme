@@ -192,98 +192,66 @@ function opcionesHtml($rows, $selected = 0) {
 </form>
 
 <script>
-// Asignado a window para que jQuery .load() lo exponga globalmente
 window.guardarProducto = function() {
-  // Verificación síncrona: botón deshabilitado = duplicado detectado
-  if ($('#boton_guardar').prop('disabled')) return;
+  var pars = '';
+  $('#formulario_nuevo').find(':input').each(function() {
+    var id = $(this).attr('id');
+    if (!id) return;
+    if (id.split('_', 2)[0] === 'dato') {
+      pars += id + '=' + encodeURIComponent($(this).val()) + '&';
+    }
+  });
+  pars += 'csrf_token=' + encodeURIComponent($('meta[name="csrf-token"]').attr('content'));
 
-  var nombre = $('#dato_nombre').val().trim();
-  var marca  = parseInt($('#dato_marca').val())  || 0;
-  var genero = parseInt($('#dato_genero').val()) || 0;
-  var tipo   = parseInt($('#dato_tipo').val())   || 0;
-  var talle  = parseInt($('#dato_talle').val())  || 0;
-  var color  = parseInt($('#dato_color').val())  || 0;
+  $('#div_mensaje_general').html('<div class="text-center"><div class="loadingsm"></div></div>');
+  $('#boton_guardar').prop('disabled', true);
 
-  if (!nombre || !marca || !genero || !tipo || !talle || !color) {
-    $('#div_mensaje_general').html(
-      '<div class="alert alert-warning">Complete todos los campos obligatorios.</div>'
-    );
-    return;
-  }
-
-  // Verificación server-side antes de guardar
   $.ajax({
-    url      : 'clases/control/producto-dup.php',
-    data     : {nombre: nombre, marca: marca, genero: genero,
-                tipo: tipo, talle: talle, color: color},
+    url      : 'clases/guardar/abmproducto.php',
+    data     : pars,
     dataType : 'json',
-    type     : 'get',
-    success  : function(dup) {
-      if (dup.existe) {
-        $('#dup-estado').html(
-          '<span class="text-danger">' +
-          '<span class="glyphicon glyphicon-ban-circle"></span> ' +
-          '<strong>Producto duplicado</strong> — ya existe: <em>' + dup.nombre + '</em>' +
-          '</span>'
+    type     : 'post',
+    success  : function(data) {
+      if (data.success === 'true') {
+        $('#dup-estado').html('');
+        $('#div_mensaje_general').html(
+          '<div class="alert alert-success alert-dismissible">' +
+          '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+          'Producto guardado. Código: <strong>' + data.codigo + '</strong></div>'
         );
-        $('#boton_guardar').prop('disabled', true);
-        return;
-      }
-
-      // Todo OK — guardar
-      var pars = '';
-      $('#formulario_nuevo').find(':input').each(function() {
-        var id = $(this).attr('id');
-        if (!id) return;
-        var partes = id.split('_', 2);
-        if (partes[0] === 'dato') {
-          pars += id + '=' + encodeURIComponent($(this).val()) + '&';
-        }
-      });
-      pars += 'csrf_token=' + encodeURIComponent($('meta[name="csrf-token"]').attr('content'));
-
-      $('#div_mensaje_general').html(
-        '<div class="text-center"><div class="loadingsm"></div></div>'
-      );
-      $('#boton_guardar').prop('disabled', true);
-
-      $.ajax({
-        url      : 'clases/guardar/abmproducto.php',
-        data     : pars,
-        dataType : 'json',
-        type     : 'post',
-        success  : function(data) {
-          if (data.success === 'true') {
-            $('#div_mensaje_general').html(
-              '<div class="alert alert-success alert-dismissible">' +
-              '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
-              'Producto guardado. Código: <strong>' + data.codigo + '</strong></div>'
-            );
-            setTimeout(function() {
-              $('#panel_inicio').load('clases/nuevo/abmproducto.php');
-            }, 2500);
-          } else {
-            $('#boton_guardar').prop('disabled', false);
-            $('#div_mensaje_general').html(
-              '<div class="alert alert-danger alert-dismissible">' +
-              '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
-              (data.error || 'Error, reintente') + '</div>'
-            );
-          }
-        },
-        error: function() {
-          $('#boton_guardar').prop('disabled', false);
-          $('#div_mensaje_general').html(
-            '<div class="alert alert-danger">Error de conexión, reintente.</div>'
+        setTimeout(function() {
+          $('#panel_inicio').load('clases/nuevo/abmproducto.php');
+        }, 2500);
+      } else {
+        $('#boton_guardar').prop('disabled', false);
+        var msg = data.error || 'Error, reintente';
+        // Si es duplicado, mostrarlo en dup-estado además del mensaje
+        if (msg.indexOf('DUPLICADO') !== -1) {
+          $('#dup-estado').html(
+            '<span class="text-danger">' +
+            '<span class="glyphicon glyphicon-ban-circle"></span> ' +
+            '<strong>' + msg + '</strong></span>'
           );
         }
-      });
+        $('#div_mensaje_general').html(
+          '<div class="alert alert-danger alert-dismissible">' +
+          '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+          msg + '</div>'
+        );
+      }
+    },
+    error: function() {
+      $('#boton_guardar').prop('disabled', false);
+      $('#div_mensaje_general').html(
+        '<div class="alert alert-danger">Error de conexión, reintente.</div>'
+      );
     }
   });
 };
 
 $(function() {
 
+  // Check en tiempo real — orientativo, no bloqueante
   function verificarDuplicado() {
     var nombre = $('#dato_nombre').val().trim();
     var marca  = parseInt($('#dato_marca').val())  || 0;
@@ -291,19 +259,14 @@ $(function() {
     var tipo   = parseInt($('#dato_tipo').val())   || 0;
     var talle  = parseInt($('#dato_talle').val())  || 0;
     var color  = parseInt($('#dato_color').val())  || 0;
-
     if (!nombre || !marca || !genero || !tipo || !talle || !color) {
       $('#dup-estado').html('');
       return;
     }
-
-    $('#dup-estado').html('<span class="text-muted"><small>Verificando...</small></span>');
     $.ajax({
       url      : 'clases/control/producto-dup.php',
-      data     : {nombre: nombre, marca: marca, genero: genero,
-                  tipo: tipo, talle: talle, color: color},
-      dataType : 'json',
-      type     : 'get',
+      data     : {nombre:nombre, marca:marca, genero:genero, tipo:tipo, talle:talle, color:color},
+      dataType : 'json', type: 'get',
       success  : function(data) {
         if (data.existe) {
           $('#dup-estado').html(
@@ -312,14 +275,12 @@ $(function() {
             '<strong>Producto duplicado</strong> — ya existe: <em>' + data.nombre + '</em>' +
             '</span>'
           );
-          $('#boton_guardar').prop('disabled', true);
         } else {
           $('#dup-estado').html(
             '<span class="text-success">' +
             '<span class="glyphicon glyphicon-ok"></span> Combinación disponible' +
             '</span>'
           );
-          $('#boton_guardar').prop('disabled', false);
         }
       }
     });
@@ -333,7 +294,6 @@ $(function() {
     );
   }
 
-  // Dispara en blur Y en input para mayor confiabilidad
   $('#dato_nombre').on('blur input', verificarDuplicado);
   $('#dato_marca, #dato_genero, #dato_tipo, #dato_talle, #dato_color').on('change', verificarDuplicado);
   $('#dato_costo, #dato_margen').on('input', calcularPrecioVenta);
