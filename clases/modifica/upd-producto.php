@@ -84,7 +84,7 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     <div class="form-group form-group-sm">
       <label class="col-lg-4 control-label">Marca</label>
       <div class="col-lg-8">
-        <select class="form-control combo-codigo" id="dato_marca" required>
+        <select class="form-control" id="dato_marca" required>
           <?php echo opcionesHtml2($marcas, $p_marca); ?>
         </select>
       </div>
@@ -93,7 +93,7 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     <div class="form-group form-group-sm">
       <label class="col-lg-4 control-label">Género</label>
       <div class="col-lg-8">
-        <select class="form-control combo-codigo" id="dato_genero" required>
+        <select class="form-control" id="dato_genero" required>
           <?php echo opcionesHtml2($generos, $p_genero); ?>
         </select>
       </div>
@@ -102,7 +102,7 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     <div class="form-group form-group-sm">
       <label class="col-lg-4 control-label">Tipo</label>
       <div class="col-lg-8">
-        <select class="form-control combo-codigo" id="dato_tipo" required>
+        <select class="form-control" id="dato_tipo" required>
           <?php echo opcionesHtml2($tipos, $p_tipo); ?>
         </select>
       </div>
@@ -111,7 +111,7 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     <div class="form-group form-group-sm">
       <label class="col-lg-4 control-label">Talle</label>
       <div class="col-lg-8">
-        <select class="form-control combo-codigo" id="dato_talle" required>
+        <select class="form-control" id="dato_talle" required>
           <?php echo opcionesHtml2($talles, $p_talle); ?>
         </select>
       </div>
@@ -120,7 +120,7 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
     <div class="form-group form-group-sm">
       <label class="col-lg-4 control-label">Color</label>
       <div class="col-lg-8">
-        <select class="form-control combo-codigo" id="dato_color" required>
+        <select class="form-control" id="dato_color" required>
           <?php echo opcionesHtml2($colores, $p_color); ?>
         </select>
       </div>
@@ -143,18 +143,11 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
 
     <div class="form-group form-group-sm">
       <label class="col-lg-3 control-label">Código</label>
-      <div class="col-lg-8">
-        <div class="input-group input-group-sm">
-          <input type="text" class="form-control" autocomplete="off"
-                 id="dato_codigo" value="<?php echo $p_codigo; ?>" required>
-          <span class="input-group-btn">
-            <button type="button" class="btn btn-default" id="btn-regenerar"
-                    title="Regenerar código">
-              <span class="glyphicon glyphicon-refresh"></span>
-            </button>
-          </span>
-        </div>
-        <div id="codigo-estado" style="margin-top:4px;min-height:18px"></div>
+      <div class="col-lg-9">
+        <input type="text" class="form-control input-sm" id="dato_codigo"
+               value="<?php echo $p_codigo; ?>" readonly
+               style="background:#f5f5f5;color:#888">
+        <div id="dup-estado" style="margin-top:4px;min-height:18px"></div>
       </div>
     </div>
 
@@ -222,61 +215,7 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
 
 <script>
 (function() {
-  function ean13check(base12) {
-    var sum = 0;
-    for (var i = 0; i < 12; i++) {
-      sum += parseInt(base12[i]) * (i % 2 === 0 ? 1 : 3);
-    }
-    return (10 - (sum % 10)) % 10;
-  }
-  function verificarCodigo(codigo) {
-    var idExcluir = $('#dato_id').val() || 0;
-    if (!codigo || codigo.length < 8) {
-      $('#codigo-estado').html('');
-      return;
-    }
-    $('#codigo-estado').html('<span class="text-muted"><small>Verificando...</small></span>');
-    $.ajax({
-      url      : 'clases/control/codigo.php',
-      data     : {codigo: codigo, id_excluir: idExcluir},
-      dataType : 'json',
-      type     : 'get',
-      success  : function(data) {
-        if (data.existe) {
-          $('#codigo-estado').html(
-            '<span class="text-danger">' +
-            '<span class="glyphicon glyphicon-warning-sign"></span> ' +
-            '<strong>Código duplicado</strong> — ya existe en: <em>' + data.nombre + '</em>' +
-            '</span>'
-          );
-          $('#dato_codigo').closest('.input-group').parent().addClass('has-error');
-          $('#boton_guardar').prop('disabled', true);
-        } else {
-          $('#codigo-estado').html(
-            '<span class="text-success">' +
-            '<span class="glyphicon glyphicon-ok"></span> Código disponible' +
-            '</span>'
-          );
-          $('#dato_codigo').closest('.input-group').parent().removeClass('has-error');
-          $('#boton_guardar').prop('disabled', false);
-        }
-      }
-    });
-  }
 
-  function generarCodigo() {
-    var marca  = parseInt($('#dato_marca').val())  || 0;
-    var genero = parseInt($('#dato_genero').val()) || 0;
-    var tipo   = parseInt($('#dato_tipo').val())   || 0;
-    var talle  = parseInt($('#dato_talle').val())  || 0;
-    var color  = parseInt($('#dato_color').val())  || 0;
-    if (!marca || !genero || !tipo || !talle || !color) return;
-    var pad = function(n,w){ return String(n).padStart(w,'0'); };
-    var base12 = '20'+pad(marca,2)+pad(genero,2)+pad(tipo,2)+pad(talle,2)+pad(color,2);
-    var codigo = base12 + ean13check(base12);
-    $('#dato_codigo').val(codigo);
-    verificarCodigo(codigo);
-  }
   function calcPV() {
     var costo  = parseFloat($('#dato_costo').val())  || 0;
     var margen = parseFloat($('#dato_margen').val()) || 0;
@@ -286,11 +225,38 @@ $pv_calc  = ($p_costo !== '' && $p_margen !== '')
       $('#precio_venta_calc').val('');
     }
   }
-  $('.combo-codigo').on('change', generarCodigo);
-  $('#btn-regenerar').on('click', generarCodigo);
   $('#dato_costo, #dato_margen').on('input', calcPV);
-  $('#dato_codigo').on('blur', function() {
-    verificarCodigo($(this).val().trim());
-  });
+
+  // ── Control duplicado en modificación ──────────────────────────────
+  function verificarDuplicado() {
+    var nombre = $('#dato_nombre').val().trim();
+    var marca  = parseInt($('#dato_marca').val())  || 0;
+    var genero = parseInt($('#dato_genero').val()) || 0;
+    var tipo   = parseInt($('#dato_tipo').val())   || 0;
+    var talle  = parseInt($('#dato_talle').val())  || 0;
+    var color  = parseInt($('#dato_color').val())  || 0;
+    var id     = parseInt($('#dato_id').val())     || 0;
+    if (!nombre || !marca || !genero || !tipo || !talle || !color) return;
+    $.ajax({
+      url      : 'clases/control/producto-dup.php',
+      data     : {nombre:nombre, marca:marca, genero:genero, tipo:tipo,
+                  talle:talle, color:color, id_excluir:id},
+      dataType : 'json', type: 'get',
+      success  : function(data) {
+        if (data.existe) {
+          $('#dup-estado').html(
+            '<span class="text-danger"><span class="glyphicon glyphicon-ban-circle"></span> ' +
+            '<strong>Producto duplicado</strong> — ya existe: <em>' + data.nombre + '</em></span>'
+          );
+          $('#boton_guardar').prop('disabled', true);
+        } else {
+          $('#dup-estado').html('');
+          $('#boton_guardar').prop('disabled', false);
+        }
+      }
+    });
+  }
+  $('#dato_nombre').on('blur', verificarDuplicado);
+  $('#dato_marca, #dato_genero, #dato_tipo, #dato_talle, #dato_color').on('change', verificarDuplicado);
 })();
 </script>
