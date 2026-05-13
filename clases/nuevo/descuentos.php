@@ -116,6 +116,8 @@ $conflictos = descuento_conflictos($conexion);
 $sql_lista = "
     SELECT d.id_descuento, d.nombre, d.tipo_alcance, d.id_alcance, d.porcentaje,
            d.fecha_desde, d.fecha_hasta, d.activo, d.creado_en,
+           d.acumulable,
+           IFNULL(d.condiciones_pago, '') AS condiciones_pago,
            CASE d.tipo_alcance
                WHEN 'global'   THEN 'Todos los productos'
                WHEN 'marca'    THEN IFNULL(m.nombre, CONCAT('Marca #', d.id_alcance))

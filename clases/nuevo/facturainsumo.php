@@ -163,7 +163,9 @@ mysqli_stmt_close($stmt);
 <?php endif; ?>
 
 <script>
-$(document).ready(function () {
+// Inline (no ready wrapper) — garantiza ejecución síncrona ANTES del callback del .load()
+// para que el callback de factura.php pueda sobrescribir confiablemente el estado.
+(function() {
   $('#dato_condicion').val('');
   $('#total').val(0);
   $('#dato_monto').val('').attr('disabled', true);
@@ -172,7 +174,7 @@ $(document).ready(function () {
   $('#div_producto').html('');
   $('#boton_guardar').attr('disabled', true);
   $('#Panel1').animate({ scrollTop: $(document).height() }, 600);
-});
+})();
 
 $(document).off('click', '.ver_modal-danger').on('click', '.ver_modal-danger', function () {
   var id_producto = $(this).data('id');
