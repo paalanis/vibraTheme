@@ -382,22 +382,55 @@ if ($factura !== 1) {
           'clases/nuevo/facturainsumo.php',
           {factura: factura, cliente: $('#dato_cliente').val(), cierre: cierre},
           function() {
-            // Después de recargar, aplicar recargo/descuento de condición (tb_condicion_venta.descuento)
-            // Ese campo es para recargos (ej: 3% tarjeta). Para descuentos de tb_descuentos ya aplicados.
+            // facturainsumo.php resetea dato_condicion, total y monto en su ready() —
+            // restaurar el estado correcto para esta condición ya seleccionada.
+            $('#dato_condicion').val(id); // sin .trigger() para evitar loop infinito
+
             var nuevoSub = parseFloat($('#subtotal').val()) || 0;
             var total    = nuevoSub + nuevoSub * dato_descuento / 100;
             $('#total').val(total.toFixed(2));
-            if (dato_cupon !== '1') $('#dato_monto').focus();
+
+            // Restaurar campos según tipo de condición
+            if (dato_cupon === '1') {
+              $('#dato_cupon').attr('disabled', false);
+              $('#boton_guardar').attr('disabled', false);
+              $('#dato_monto').attr('disabled', true).val('');
+              $('#dato_vuelto').val(0);
+            } else {
+              $('#dato_cupon').attr('disabled', true).val('');
+              $('#dato_monto').attr('disabled', false);
+              $('#boton_guardar').attr('disabled', true); // se habilita al ingresar monto
+              $('#dato_monto').focus();
+            }
           }
         );
       }, 'json').fail(function(xhr, status) {
-        if (status === 'abort') return; // cancelado intencionalmente
+        if (status === 'abort') return; // cancelado intencionalmente — nueva llamada ya en vuelo
         xhrRecalc = null;
-        // Fallback: sin recalcul, solo aplicar recargo de condición
-        var sub   = parseFloat($('#subtotal').val()) || 0;
-        var total = sub + sub * dato_descuento / 100;
-        $('#total').val(total.toFixed(2));
-        if (dato_cupon !== '1') $('#dato_monto').focus();
+        // Recalculación falló — recargar el carrito para limpiar el spinner
+        // (los precios en DB no cambiaron porque recalcular-descuento.php no hizo commit)
+        $('#div_remitos').load(
+          'clases/nuevo/facturainsumo.php',
+          {factura: factura, cliente: $('#dato_cliente').val(), cierre: cierre},
+          function() {
+            // Mismo restore que en el path de éxito
+            $('#dato_condicion').val(id);
+            var sub   = parseFloat($('#subtotal').val()) || 0;
+            var total = sub + sub * dato_descuento / 100;
+            $('#total').val(total.toFixed(2));
+            if (dato_cupon === '1') {
+              $('#dato_cupon').attr('disabled', false);
+              $('#boton_guardar').attr('disabled', false);
+              $('#dato_monto').attr('disabled', true).val('');
+              $('#dato_vuelto').val(0);
+            } else {
+              $('#dato_cupon').attr('disabled', true).val('');
+              $('#dato_monto').attr('disabled', false);
+              $('#boton_guardar').attr('disabled', true);
+              $('#dato_monto').focus();
+            }
+          }
+        );
       });
     });
   });
