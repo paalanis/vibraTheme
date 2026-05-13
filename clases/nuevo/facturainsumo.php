@@ -59,6 +59,8 @@ while (mysqli_stmt_fetch($stmt)) {
         'cantidad'     => (float)$r_cantidad,
         'subtotal'     => (float)$r_subtotal,
         'desc_nombre'  => $r_desc_nombre ?? '',
+        // acumulado = descuento combinado de múltiples reglas (id_descuento NULL pero pct > 0)
+        'acumulado'    => ($r_desc_pct > 0 && $r_desc_nombre === null),
     ];
     $total_fc     += (float)$r_subtotal;
     $total_ahorro += $desc_monto;
@@ -103,8 +105,15 @@ mysqli_stmt_close($stmt);
       <?php if ($hay_descuento): ?>
       <td style="color:#d9534f; white-space:nowrap;">
           <?php if ($d['desc_pct'] > 0): ?>
-          <span title="<?php echo htmlspecialchars($d['desc_nombre'], ENT_QUOTES, 'UTF-8'); ?>">
+          <?php
+              // desc_nombre puede ser NULL si se acumularon varias reglas (id_descuento=NULL)
+              $desc_tooltip = ($d['desc_nombre'] !== '') ? $d['desc_nombre'] : 'Desc. combinado';
+          ?>
+          <span title="<?php echo htmlspecialchars($desc_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
               −<?php echo number_format($d['desc_pct'], 1); ?>%
+              <?php if ($d['acumulado'] ?? false): ?>
+              <span class="label label-primary" style="font-size:9px;" title="Descuento combinado">&#x21C4;</span>
+              <?php endif; ?>
               <br><small>−$<?php echo number_format($d['desc_monto'], 2, ',', '.'); ?></small>
           </span>
           <?php else: ?>

@@ -47,20 +47,22 @@ if ($accion === 'crear') {
     }
     if ($tipo_alcance === 'global') $id_alcance = null;
 
+    $condiciones_pago = trim($_POST['condiciones_pago'] ?? '') ?: null;
+    $acumulable       = isset($_POST['acumulable']) ? 1 : 0;
+
     $stmt = mysqli_prepare($conexion,
         "INSERT INTO tb_descuentos
          (nombre, tipo_alcance, id_alcance, porcentaje, fecha_desde, fecha_hasta,
-          activo, id_sucursal, creado_por)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          activo, id_sucursal, condiciones_pago, acumulable, creado_por)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
-    mysqli_stmt_bind_param($stmt, 'ssidssiii',
+    // ssidssiiisi: nombre(s), tipo(s), id_alcance(i), porcentaje(d), fecha_desde(s),
+    //              fecha_hasta(s), activo(i), id_sucursal(i), condiciones_pago(s), acumulable(i), creado_por(i)
+    mysqli_stmt_bind_param($stmt, 'ssidssiiisi',
         $nombre, $tipo_alcance, $id_alcance, $porcentaje,
-        $fecha_desde, $fecha_hasta, $activo, $id_sucursal, $creado_por
+        $fecha_desde, $fecha_hasta, $activo, $id_sucursal,
+        $condiciones_pago, $acumulable, $creado_por
     );
-
-    // bind_param no acepta NULL directamente en int — usamos referencias
-    // Solución: bind_param con tipos 's' o 'i' y PHP convierte NULL → NULL en SQL ✓
-    // (mysqli convierte variable PHP null en NULL SQL para cualquier tipo)
 
     if (mysqli_stmt_execute($stmt)) {
         $nuevo_id = mysqli_insert_id($conexion);
@@ -91,15 +93,20 @@ if ($accion === 'actualizar') {
     }
     if ($tipo_alcance === 'global') $id_alcance = null;
 
+    $condiciones_pago = trim($_POST['condiciones_pago'] ?? '') ?: null;
+    $acumulable       = isset($_POST['acumulable']) ? 1 : 0;
+
     $stmt = mysqli_prepare($conexion,
         "UPDATE tb_descuentos
          SET nombre=?, tipo_alcance=?, id_alcance=?, porcentaje=?,
-             fecha_desde=?, fecha_hasta=?, activo=?, id_sucursal=?
+             fecha_desde=?, fecha_hasta=?, activo=?, id_sucursal=?,
+             condiciones_pago=?, acumulable=?
          WHERE id_descuento=?"
     );
-    mysqli_stmt_bind_param($stmt, 'ssidssiii',
+    mysqli_stmt_bind_param($stmt, 'ssidssiiisi',
         $nombre, $tipo_alcance, $id_alcance, $porcentaje,
-        $fecha_desde, $fecha_hasta, $activo, $id_sucursal, $id
+        $fecha_desde, $fecha_hasta, $activo, $id_sucursal,
+        $condiciones_pago, $acumulable, $id
     );
     if (mysqli_stmt_execute($stmt)) {
         mysqli_stmt_close($stmt);

@@ -25,6 +25,34 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'tipos') {
     echo json_encode($out); exit();
 }
 
+// ── AJAX: condiciones de pago ────────────────────────────────────────────
+if (isset($_POST['accion']) && $_POST['accion'] === 'condiciones') {
+    $rs = mysqli_query($conexion, "SELECT id_condicion_venta AS id, nombre FROM tb_condicion_venta ORDER BY nombre ASC");
+    $out = [];
+    while ($r = mysqli_fetch_assoc($rs)) $out[] = $r;
+    header('Content-Type: application/json');
+    echo json_encode($out); exit();
+}
+
+// ── AJAX: preview de acumulación ─────────────────────────────────────────
+if (isset($_POST['accion']) && $_POST['accion'] === 'preview_acumulacion') {
+    require_once '../../conexion/descuentos.php';
+    $id_excluir       = (int)($_POST['id_excluir']       ?? 0);
+    $condiciones_pago = trim($_POST['condiciones_pago']   ?? '') ?: null;
+    $pct_nueva        = (float)($_POST['porcentaje']      ?? 0);
+    $nombre_nueva     = trim($_POST['nombre']             ?? 'Esta regla');
+    $reglas = descuento_preview_acumulacion($conexion, $id_excluir, $condiciones_pago);
+    // Calcular combinación
+    $factor = (1.0 - $pct_nueva / 100.0);
+    foreach ($reglas as $r) { $factor *= (1.0 - $r['porcentaje'] / 100.0); }
+    $combined = round((1.0 - $factor) * 100.0, 2);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'reglas'   => $reglas,
+        'combined' => $combined,
+    ]); exit();
+}
+
 // ── AJAX: buscar producto ─────────────────────────────────────────────────
 if (isset($_POST['accion']) && $_POST['accion'] === 'producto_buscar') {
     $q = trim($_POST['q'] ?? '');
@@ -52,27 +80,30 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'cargar') {
     if ($id <= 0) { echo '{}'; exit(); }
     $stmt = mysqli_prepare($conexion,
         "SELECT id_descuento, nombre, tipo_alcance, id_alcance, porcentaje,
-                fecha_desde, fecha_hasta, activo, id_sucursal
+                fecha_desde, fecha_hasta, activo, id_sucursal,
+                condiciones_pago, acumulable
          FROM tb_descuentos WHERE id_descuento = ?"
     );
     mysqli_stmt_bind_param($stmt, 'i', $id);
     mysqli_stmt_execute($stmt);
-    $r_id = $r_nom = $r_tipo = $r_alc = $r_pct = $r_fdes = $r_fhas = $r_act = $r_suc = null;
-    mysqli_stmt_bind_result($stmt, $r_id, $r_nom, $r_tipo, $r_alc, $r_pct, $r_fdes, $r_fhas, $r_act, $r_suc);
+    $r_id = $r_nom = $r_tipo = $r_alc = $r_pct = $r_fdes = $r_fhas = $r_act = $r_suc = $r_cond = $r_acum = null;
+    mysqli_stmt_bind_result($stmt, $r_id, $r_nom, $r_tipo, $r_alc, $r_pct, $r_fdes, $r_fhas, $r_act, $r_suc, $r_cond, $r_acum);
     $found = (bool)mysqli_stmt_fetch($stmt);
     mysqli_stmt_close($stmt);
     if (!$found) { echo '{}'; exit(); }
     header('Content-Type: application/json');
     echo json_encode([
-        'id_descuento' => $r_id,
-        'nombre'       => $r_nom,
-        'tipo_alcance' => $r_tipo,
-        'id_alcance'   => $r_alc,
-        'porcentaje'   => $r_pct,
-        'fecha_desde'  => $r_fdes ?? '',
-        'fecha_hasta'  => $r_fhas ?? '',
-        'activo'       => $r_act,
-        'id_sucursal'  => $r_suc,
+        'id_descuento'   => $r_id,
+        'nombre'         => $r_nom,
+        'tipo_alcance'   => $r_tipo,
+        'id_alcance'     => $r_alc,
+        'porcentaje'     => $r_pct,
+        'fecha_desde'    => $r_fdes ?? '',
+        'fecha_hasta'    => $r_fhas ?? '',
+        'activo'         => $r_act,
+        'id_sucursal'    => $r_suc,
+        'condiciones_pago' => $r_cond ?? '',
+        'acumulable'     => (int)$r_acum,
     ]);
     exit();
 }
@@ -173,6 +204,7 @@ foreach ($reglas as $r) {
                 <th style="text-align:center;">%</th>
                 <th>Desde</th>
                 <th>Hasta</th>
+                <th style="text-align:center;">Acum.</th>
                 <th style="text-align:center;">Estado</th>
                 <th style="text-align:center;">Acciones</th>
             </tr>
@@ -191,6 +223,13 @@ foreach ($reglas as $r) {
                 </td>
                 <td><?php echo $r['fecha_desde'] ? date('d/m/Y', strtotime($r['fecha_desde'])) : '<span class="text-muted">—</span>'; ?></td>
                 <td><?php echo $r['fecha_hasta'] ? date('d/m/Y', strtotime($r['fecha_hasta'])) : '<span class="text-muted">—</span>'; ?></td>
+                <td style="text-align:center;">
+                    <?php if ($r['acumulable']): ?>
+                    <span class="label label-primary" title="Se combina con otras reglas acumulables">&#x21C4;</span>
+                    <?php else: ?>
+                    <span class="text-muted" title="No acumulable">—</span>
+                    <?php endif; ?>
+                </td>
                 <td style="text-align:center;">
                     <span class="label label-<?php echo $est['cls']; ?>">
                         <?php echo $est['lbl']; ?>
@@ -312,6 +351,30 @@ foreach ($reglas as $r) {
       </div>
 
       <div class="form-group form-group-sm">
+        <label class="col-sm-2 control-label">Condición de pago</label>
+        <div class="col-sm-6">
+          <div id="desc_condiciones_lista" style="max-height:110px; overflow-y:auto; border:1px solid #ccc; border-radius:4px; padding:6px; background:#fff;">
+            <span class="text-muted" style="font-size:12px;">Cargando...</span>
+          </div>
+          <p class="help-block" style="margin-top:4px; margin-bottom:0;">
+            Sin selección = aplica a <strong>todas</strong> las condiciones.
+          </p>
+        </div>
+      </div>
+
+      <div class="form-group form-group-sm">
+        <div class="col-sm-offset-2 col-sm-10">
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="desc_acumulable">
+              <strong>¿Acumulable?</strong> — se combina con otras reglas acumulables activas
+            </label>
+          </div>
+          <div id="desc_preview_acum" class="alert alert-warning" style="display:none; margin-top:8px; margin-bottom:0; padding:8px 12px; font-size:12px;"></div>
+        </div>
+      </div>
+
+      <div class="form-group form-group-sm">
         <div class="col-sm-offset-2 col-sm-10">
           <div class="checkbox">
             <label>
@@ -377,6 +440,76 @@ function cargarTipos(cb) {
         cacheTipos = d; cb(d);
     }, 'json');
 }
+
+// ── Cache de condiciones de pago ──────────────────────────────────────────
+var cacheCondiciones = null;
+
+function cargarCondicionesForm(seleccionadas) {
+    seleccionadas = seleccionadas || [];
+    var $div = $('#desc_condiciones_lista').html('<span class="text-muted" style="font-size:12px;">Cargando...</span>');
+    if (cacheCondiciones) {
+        renderCondicionesForm(cacheCondiciones, seleccionadas); return;
+    }
+    $.post('clases/nuevo/descuentos.php', {accion:'condiciones'}, function(lista) {
+        cacheCondiciones = lista;
+        renderCondicionesForm(lista, seleccionadas);
+    }, 'json');
+}
+function renderCondicionesForm(lista, seleccionadas) {
+    var $div = $('#desc_condiciones_lista').empty();
+    if (!lista.length) { $div.html('<span class="text-muted" style="font-size:12px;">No hay condiciones.</span>'); return; }
+    $.each(lista, function(i, c) {
+        var checked = seleccionadas.indexOf(String(c.id)) !== -1 ? ' checked' : '';
+        $div.append(
+            '<div class="checkbox" style="margin:2px 0;">' +
+            '<label style="font-size:12px;font-weight:normal;">' +
+            '<input type="checkbox" class="desc_chk_condicion" value="' + c.id + '"' + checked + '> ' +
+            esc(c.nombre) + '</label></div>'
+        );
+    });
+}
+
+function getCondicionesSeleccionadas() {
+    var ids = [];
+    $('#desc_condiciones_lista .desc_chk_condicion:checked').each(function() { ids.push($(this).val()); });
+    return ids.join(',') || null; // null = todas
+}
+
+// Preview de acumulación al cambiar checkbox
+function actualizarPreviewAcum() {
+    if (!$('#desc_acumulable').is(':checked')) {
+        $('#desc_preview_acum').hide().empty(); return;
+    }
+    var pct       = parseFloat($('#desc_porcentaje').val()) || 0;
+    var nombre    = $.trim($('#desc_nombre').val()) || 'Esta regla';
+    var idExcluir = parseInt($('#desc_id_descuento').val()) || 0;
+    var condPago  = getCondicionesSeleccionadas() || '';
+
+    $.post('clases/nuevo/descuentos.php', {
+        accion: 'preview_acumulacion',
+        id_excluir: idExcluir,
+        condiciones_pago: condPago,
+        porcentaje: pct,
+        nombre: nombre
+    }, function(d) {
+        if (!d) return;
+        var $div = $('#desc_preview_acum');
+        if (!d.reglas || d.reglas.length === 0) {
+            $div.html('<span class="glyphicon glyphicon-info-sign"></span> No hay otras reglas acumulables activas actualmente. Esta regla aplicará sola.').show();
+        } else {
+            var nombres = $.map(d.reglas, function(r) { return '<em>' + esc(r.nombre) + ' (' + r.porcentaje + '%)' + '</em>'; });
+            $div.html(
+                '<span class="glyphicon glyphicon-warning-sign"></span> ' +
+                '<strong>⚠️ Se combinará con:</strong> ' + nombres.join(', ') +
+                '<br><strong>Descuento combinado estimado: ' + d.combined + '%</strong>'
+            ).show();
+        }
+    }, 'json');
+}
+
+$('#desc_acumulable').on('change', actualizarPreviewAcum);
+$('#desc_porcentaje').on('change', function() { if ($('#desc_acumulable').is(':checked')) actualizarPreviewAcum(); });
+$(document).on('change', '.desc_chk_condicion', function() { if ($('#desc_acumulable').is(':checked')) actualizarPreviewAcum(); });
 
 // ── Cambio de tipo_alcance — actualiza selector dinámico ──────────────────
 $('#desc_tipo_alcance').on('change', function() {
@@ -459,6 +592,7 @@ $('#desc_btn_hoy').on('click', function() {
 // ── Mostrar / ocultar formulario ───────────────────────────────────────────
 $('#desc_btn_nueva').on('click', function() {
     limpiarFormulario();
+    cargarCondicionesForm([]);
     $('#desc_frm_titulo').html('<strong>Nueva regla de descuento</strong>');
     $('#desc_frm_panel').slideDown(200);
     $('#desc_nombre').focus();
@@ -475,6 +609,8 @@ function limpiarFormulario() {
     $('#desc_fecha_desde').val('');
     $('#desc_fecha_hasta').val('');
     $('#desc_activo').prop('checked', true);
+    $('#desc_acumulable').prop('checked', false);
+    $('#desc_preview_acum').hide().empty();
     $('#desc_frm_alerta').hide();
 }
 
@@ -524,6 +660,12 @@ $(document).on('click.descuentos', '.desc_btn_editar', function() {
                 $('#desc_id_alcance').val(d.id_alcance);
             });
         }
+        // Condiciones de pago
+        var condSel = d.condiciones_pago ? d.condiciones_pago.split(',') : [];
+        cargarCondicionesForm(condSel);
+        // Acumulable
+        $('#desc_acumulable').prop('checked', d.acumulable == 1);
+        if (d.acumulable == 1) actualizarPreviewAcum();
         $('#desc_frm_titulo').html('<strong>Editar regla</strong>');
         $('#desc_frm_panel').slideDown(200);
         $('#desc_nombre').focus();
@@ -622,17 +764,20 @@ $('#desc_btn_guardar').on('click', function() {
     $('#desc_guardando').show();
 
     var accion = id > 0 ? 'actualizar' : 'crear';
+    var condPago = getCondicionesSeleccionadas();
     var data = {
-        accion       : accion,
-        id_descuento : id,
-        nombre       : nombre,
-        tipo_alcance : tipo,
-        id_alcance   : alcance,
-        porcentaje   : pct,
-        fecha_desde  : desde,
-        fecha_hasta  : hasta,
-        activo       : activo,
-        csrf_token   : csrfToken
+        accion           : accion,
+        id_descuento     : id,
+        nombre           : nombre,
+        tipo_alcance     : tipo,
+        id_alcance       : alcance,
+        porcentaje       : pct,
+        fecha_desde      : desde,
+        fecha_hasta      : hasta,
+        activo           : activo,
+        condiciones_pago : condPago || '',
+        acumulable       : $('#desc_acumulable').is(':checked') ? 1 : 0,
+        csrf_token       : csrfToken
     };
 
     $.post('clases/guardar/descuento.php', data, function(d) {

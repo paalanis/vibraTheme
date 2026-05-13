@@ -7,6 +7,7 @@ if (!isset($_SESSION['usuario'])) {
 }
 require_once '../../conexion/conexion.php';
 require_once '../../conexion/csrf.php';
+require_once '../../conexion/descuentos.php'; // recalculo final de descuentos
 csrf_validate();
 
 $cliente   = (int)($_POST['dato_cliente']   ?? 0);
@@ -92,6 +93,13 @@ try {
         throw new Exception('Error registrando movimientos de stock');
     }
     mysqli_stmt_close($stmt_mov);
+
+    // ── Recalcular descuentos con la condición de pago final ─────────────────
+    // Garantía: aunque el AJAX de preview haya fallado, la DB queda correcta.
+    $ok_desc = descuento_recalcular_carrito($conexion, $factura, $cierre, $sucursal, $condicion);
+    if (!$ok_desc) {
+        throw new Exception('Error al aplicar descuentos finales');
+    }
 
     // ── Confirma la venta + guarda condición de venta ─────────────────────────
     // FIX: id_condicion_venta ahora se persiste en tb_ventas.

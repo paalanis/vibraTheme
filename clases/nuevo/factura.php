@@ -334,30 +334,71 @@ if ($factura !== 1) {
   var condicion_descuento = <?php echo json_encode($descuento ?? []); ?>;
 
   $(function() {
+    var xhrRecalc = null; // para abortar llamada anterior si cambia rápido
+
     $('#dato_condicion').change(function() {
-      var id           = $(this).val();
+      var id             = $(this).val();
       var dato_descuento = condicion_descuento[id] || 0;
       var dato_cupon     = condicion_cupon[id];
-
-      $('#total').val(parseFloat($('#subtotal').val()) + parseFloat($('#subtotal').val()) * dato_descuento / 100);
 
       if (id === '0') {
         $('#boton_guardar').attr('disabled', true);
         $('#total').val(0); $('#dato_vuelto').val(0); $('#dato_monto').val('');
         $('#dato_monto').attr('disabled', true);
-      } else {
-        if (dato_cupon === '1') {
-          $('#dato_cupon').attr('disabled', false);
-          $('#boton_guardar').attr('disabled', false);
-          $('#dato_monto').attr('disabled', true).val('');
-          $('#dato_vuelto').val(0);
-        } else {
-          $('#dato_cupon').attr('disabled', true).val('');
-          $('#dato_monto').attr('disabled', false);
-          $('#boton_guardar').attr('disabled', true);
-          $('#dato_monto').focus();
-        }
+        return;
       }
+
+      // Habilitar campos según tipo de condición
+      if (dato_cupon === '1') {
+        $('#dato_cupon').attr('disabled', false);
+        $('#boton_guardar').attr('disabled', false);
+        $('#dato_monto').attr('disabled', true).val('');
+        $('#dato_vuelto').val(0);
+      } else {
+        $('#dato_cupon').attr('disabled', true).val('');
+        $('#dato_monto').attr('disabled', false);
+        $('#boton_guardar').attr('disabled', true);
+      }
+
+      // Abortar recalcul anterior si sigue en vuelo
+      if (xhrRecalc) { xhrRecalc.abort(); }
+
+      var factura  = $('#dato_factura').val();
+      var cierre   = $('#cierre').val();
+      var sucursal = $('#dato_sucursal').val();
+      var csrf     = $('meta[name="csrf-token"]').attr('content');
+
+      $('#div_remitos').html('<div class="text-center"><div class="loadingsm"></div></div>');
+
+      xhrRecalc = $.post('clases/guardar/recalcular-descuento.php', {
+        id_condicion : id,
+        dato_factura : factura,
+        dato_sucursal: sucursal,
+        csrf_token   : csrf
+      }, function(d) {
+        xhrRecalc = null;
+        // Recargar carrito con precios actualizados
+        $('#div_remitos').load(
+          'clases/nuevo/facturainsumo.php',
+          {factura: factura, cliente: $('#dato_cliente').val(), cierre: cierre},
+          function() {
+            // Después de recargar, aplicar recargo/descuento de condición (tb_condicion_venta.descuento)
+            // Ese campo es para recargos (ej: 3% tarjeta). Para descuentos de tb_descuentos ya aplicados.
+            var nuevoSub = parseFloat($('#subtotal').val()) || 0;
+            var total    = nuevoSub + nuevoSub * dato_descuento / 100;
+            $('#total').val(total.toFixed(2));
+            if (dato_cupon !== '1') $('#dato_monto').focus();
+          }
+        );
+      }, 'json').fail(function(xhr, status) {
+        if (status === 'abort') return; // cancelado intencionalmente
+        xhrRecalc = null;
+        // Fallback: sin recalcul, solo aplicar recargo de condición
+        var sub   = parseFloat($('#subtotal').val()) || 0;
+        var total = sub + sub * dato_descuento / 100;
+        $('#total').val(total.toFixed(2));
+        if (dato_cupon !== '1') $('#dato_monto').focus();
+      });
     });
   });
 
