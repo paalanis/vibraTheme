@@ -347,6 +347,9 @@ foreach ($reglas as $r) {
 'use strict';
 var csrfToken = $('meta[name="csrf-token"]').attr('content') || '';
 
+// Limpiar handlers anteriores antes de re-registrar (evita acumulación por reload del panel)
+$(document).off('.descuentos');
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 function esc(s) { return $('<span>').text(s || '').html(); }
 function hoy()  { return new Date().toISOString().slice(0,10); }
@@ -439,7 +442,7 @@ $('#desc_producto_buscar').on('input', function() {
     }, 300);
 });
 
-$(document).on('click', '.desc_prod_item', function(e) {
+$(document).on('click.descuentos', '.desc_prod_item', function(e) {
     e.preventDefault();
     $('#desc_id_alcance').val($(this).data('id'));
     $('#desc_producto_buscar').val($(this).data('label'));
@@ -476,7 +479,7 @@ function limpiarFormulario() {
 }
 
 // ── Editar ─────────────────────────────────────────────────────────────────
-$(document).on('click', '.desc_btn_editar', function() {
+$(document).on('click.descuentos', '.desc_btn_editar', function() {
     var id = $(this).data('id');
     $.post('clases/nuevo/descuentos.php', {accion:'cargar', id:id}, function(d) {
         if (!d || !d.id_descuento) { msg('No se pudo cargar la regla.','danger'); return; }
@@ -528,25 +531,48 @@ $(document).on('click', '.desc_btn_editar', function() {
 });
 
 // ── Toggle activo/pausado ─────────────────────────────────────────────────
-$(document).on('click', '.desc_btn_toggle', function() {
+$(document).on('click.descuentos', '.desc_btn_toggle', function() {
     var $btn = $(this);
     var id   = $btn.data('id');
+    $btn.prop('disabled', true);
     $.post('clases/guardar/descuento.php',
         {accion:'toggle', id_descuento:id, csrf_token: csrfToken},
         function(d) {
-            if (d.success) {
-                // Recargar el panel completo para reflejar nuevo estado
-                setTimeout(function(){
-                    $('#panel_inicio').load('clases/nuevo/descuentos.php');
-                }, 300);
+            $btn.prop('disabled', false);
+            if (d && d.success) {
+                var activo = parseInt(d.activo);
+                var $row   = $('tr[data-id="' + id + '"]');
+                // Actualizar botón
+                if (activo === 1) {
+                    $btn.removeClass('btn-success').addClass('btn-warning')
+                        .attr('title', 'Pausar').data('activo', 1)
+                        .find('span')
+                        .removeClass('glyphicon-play').addClass('glyphicon-pause');
+                } else {
+                    $btn.removeClass('btn-warning').addClass('btn-success')
+                        .attr('title', 'Activar').data('activo', 0)
+                        .find('span')
+                        .removeClass('glyphicon-pause').addClass('glyphicon-play');
+                }
+                // Actualizar badge de estado en la misma fila
+                var $badge = $row.find('td .label');
+                $badge.removeClass('label-success label-default label-danger label-info');
+                if (activo === 1) {
+                    $badge.addClass('label-success').text('Activa');
+                } else {
+                    $badge.addClass('label-default').text('Pausada');
+                }
             } else {
-                msg('Error al cambiar estado.','danger');
+                msg('Error al cambiar estado.', 'danger');
             }
-        }, 'json');
+        }, 'json').fail(function() {
+            $btn.prop('disabled', false);
+            msg('Error de comunicación.', 'danger');
+        });
 });
 
 // ── Eliminar ───────────────────────────────────────────────────────────────
-$(document).on('click', '.desc_btn_eliminar', function() {
+$(document).on('click.descuentos', '.desc_btn_eliminar', function() {
     var id     = $(this).data('id');
     var nombre = $(this).data('nombre');
     if (!confirm('¿Eliminar la regla "' + nombre + '"?\nLos descuentos ya aplicados en ventas no se modifican.')) return;
