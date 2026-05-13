@@ -9,6 +9,7 @@ if (mysqli_connect_errno()) {
     printf("Error de conexión: %s\n", mysqli_connect_error());
     exit();
 }
+require_once '../../conexion/descuentos.php'; // resolvedor de descuentos
 
 /* ── AJAX: cargar marcas ─────────────────────────────────────── */
 if (isset($_POST['accion']) && $_POST['accion'] === 'marcas') {
@@ -45,9 +46,11 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
 
     $sql = "SELECT
                 p.id_productos,
+                p.id_marca,
+                p.id_tipo,
                 p.nombre,
                 p.codigo,
-                ROUND(p.precio_costo * (1 + p.margen_ganancia / 100), 2) AS precio_venta,
+                ROUND(p.precio_costo * (1 + p.margen_ganancia / 100), 2) AS precio_lista_calc,
                 t.nombre AS talle,
                 c.nombre AS color,
                 m.nombre AS marca
@@ -60,19 +63,36 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
             LIMIT 100";
 
     $rs   = mysqli_query($conexion, $sql);
+    $prods_raw = [];
+    while ($r = mysqli_fetch_assoc($rs)) $prods_raw[] = $r;
+
+    // Cargar todas las reglas de descuento activas en una sola query
+    // id_sucursal no está en sesión — 0 = aplica solo reglas globales (id_sucursal IS NULL)
+    $id_sucursal_etq = 0;
+    $reglas_activas  = descuento_cargar_activos($conexion, $id_sucursal_etq);
+
     $rows = [];
-    while ($r = mysqli_fetch_assoc($rs)) {
-        $lista = (float)$r['precio_venta'];
-        $efvo  = $lista * 0.90; // 10% descuento — hardcodeado hasta módulo ofertas
+    foreach ($prods_raw as $r) {
+        $lista = (float)$r['precio_lista_calc'];
+        $desc  = descuento_resolver_local(
+            $reglas_activas,
+            (int)$r['id_productos'],
+            (int)$r['id_marca'],
+            (int)$r['id_tipo']
+        );
+        $pct  = $desc['porcentaje'];
+        $efvo = round($lista * (1 - $pct / 100), 2);
         $rows[] = [
-            'id'     => $r['id_productos'],
-            'nombre' => $r['nombre'],
-            'codigo' => $r['codigo'],
-            'lista'  => number_format($lista, 2, ',', '.'),
-            'efvo'   => number_format($efvo,  2, ',', '.'),
-            'talle'  => $r['talle']  ?? '',
-            'color'  => $r['color']  ?? '',
-            'marca'  => $r['marca']  ?? '',
+            'id'           => $r['id_productos'],
+            'nombre'       => $r['nombre'],
+            'codigo'       => $r['codigo'],
+            'lista'        => number_format($lista, 2, ',', '.'),
+            'efvo'         => number_format($efvo,  2, ',', '.'),
+            'desc_pct'     => $pct,
+            'desc_nombre'  => $desc['nombre'],
+            'talle'        => $r['talle']  ?? '',
+            'color'        => $r['color']  ?? '',
+            'marca'        => $r['marca']  ?? '',
         ];
     }
     header('Content-Type: application/json');
@@ -186,7 +206,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
             <th>Talle</th>
             <th>Color</th>
             <th>Lista</th>
-            <th>Efvo (−10%)</th>
+            <th id="etq_th_efvo">Efvo (−?%)</th>
             <th style="width:64px;">Cant.</th>
           </tr>
         </thead>
@@ -302,7 +322,13 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
     }
     $('#etq_vacio').hide(); $('#etq_tabla').show();
 
+    // Actualizar encabezado con % del primer producto que tenga descuento
+    var pctHeader = 0;
+    $.each(lista, function(i, p){ if (p.desc_pct > 0) { pctHeader = p.desc_pct; return false; } });
+    $('#etq_th_efvo').text(pctHeader > 0 ? 'Efvo (−' + pctHeader + '%)' : 'Efvo');
+
     $.each(lista, function (i, p) {
+      var descLabel = p.desc_pct > 0 ? ' <small style="color:#d9534f;">−'+p.desc_pct+'%</small>' : '';
       $b.append(
         '<tr>' +
         '<td style="text-align:center;vertical-align:middle;">' +
@@ -312,7 +338,8 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'buscar') {
           ' data-lista="'  + esc(p.lista)  + '"' +
           ' data-efvo="'   + esc(p.efvo)   + '"' +
           ' data-talle="'  + esc(p.talle)  + '"' +
-          ' data-color="'  + esc(p.color)  + '">' +
+          ' data-color="'  + esc(p.color)  + '"' +
+          ' data-desc="'   + (p.desc_pct||0) + '">' +
         '</td>' +
         '<td style="vertical-align:middle;font-family:monospace;">' + esc(p.codigo) + '</td>' +
         '<td style="vertical-align:middle;">'  + esc(p.nombre) + '</td>' +

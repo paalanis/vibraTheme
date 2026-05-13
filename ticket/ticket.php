@@ -18,6 +18,9 @@ $stmt = mysqli_prepare($conexion,
         tp.nombre                                 AS producto,
         tp.codigo                                 AS codigo,
         tp.presentacion                           AS presentacion,
+        tv.precio_lista                           AS precio_lista,
+        tv.descuento_pct                          AS descuento_pct,
+        tv.descuento_monto                        AS descuento_monto,
         tv.precio_venta                           AS precio,
         tv.cantidad                               AS cantidad,
         tv.subtotal                               AS subtotal,
@@ -32,6 +35,7 @@ mysqli_stmt_bind_param($stmt, 'iii', $cliente, $factura, $cierre);
 mysqli_stmt_execute($stmt);
 mysqli_stmt_bind_result($stmt,
     $r_id, $r_producto, $r_codigo, $r_presentacion,
+    $r_precio_lista, $r_desc_pct, $r_desc_monto,
     $r_precio, $r_cantidad, $r_subtotal, $r_nombrecliente
 );
 
@@ -42,6 +46,9 @@ while (mysqli_stmt_fetch($stmt)) {
         'producto'      => mb_convert_encoding($r_producto,      'UTF-8', 'ISO-8859-1'),
         'presentacion'  => mb_convert_encoding($r_presentacion,  'UTF-8', 'ISO-8859-1'),
         'nombrecliente' => mb_convert_encoding($r_nombrecliente, 'UTF-8', 'ISO-8859-1'),
+        'precio_lista'  => round(($r_precio_lista > 0 ? $r_precio_lista : $r_precio), 2),
+        'desc_pct'      => round((float)$r_desc_pct,  2),
+        'desc_monto'    => round((float)$r_desc_monto, 2),
         'precio'        => round($r_precio,   2),
         'cantidad'      => round($r_cantidad, 3),
         'subtotal'      => round($r_subtotal, 2),
@@ -49,6 +56,7 @@ while (mysqli_stmt_fetch($stmt)) {
     $total_fc = round($total_fc + $r_subtotal, 2);
 }
 mysqli_stmt_close($stmt);
+$total_ahorro = array_sum(array_column($rows, 'desc_monto'));
 
 // Variables con fallback por si no hay productos
 $nombrecliente = !empty($rows) ? $rows[0]['nombrecliente'] : '';
@@ -86,12 +94,20 @@ try {
 
     foreach ($rows as $row) {
         $printer->text("{$row['producto']}\n");
-        $printer->text("{$row['cantidad']}  {$row['presentacion']} \${$row['precio']} \${$row['subtotal']}\n");
+        if ($row['desc_pct'] > 0) {
+            $printer->text("{$row['cantidad']}  {$row['presentacion']} Lista:\${$row['precio_lista']} Desc:-{$row['desc_pct']}% \${$row['subtotal']}\n");
+        } else {
+            $printer->text("{$row['cantidad']}  {$row['presentacion']} \${$row['precio']} \${$row['subtotal']}\n");
+        }
     }
 
     $printer->text("------------------------------------------------\n");
     $printer->setJustification(Printer::JUSTIFY_RIGHT);
     $printer->text("$nombrecliente\n");
+    if ($total_ahorro > 0) {
+        $ahorro_fmt = number_format($total_ahorro, 2, ',', '.');
+        $printer->text("AHORRO PROMO: -\$ $ahorro_fmt\n");
+    }
     $printer->text("TOTAL: $ $total_fc\n");
     $printer->text("EFECTIVO: $ $monto\n");
     $printer->text("SU VUELTO: $ $vuelto\n");

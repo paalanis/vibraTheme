@@ -118,6 +118,8 @@ if ($found_cierre && $id_cierre_val) {
                 <li><a href="#" class="menu" title="nuevo_buscaproducto" onmouseup="cerrar()">Modificar Productos</a></li>
                 <li><a href="#" class="menu" title="nuevo_etiqueta" onmouseup="cerrar()">Imprimir Etiquetas</a></li>
                 <li role="separator" class="divider"></li>
+                <li><a href="#" class="menu" title="nuevo_descuentos" onmouseup="cerrar()">Descuentos y Ofertas</a></li>
+                <li role="separator" class="divider"></li>
                 <li><a href="#" class="menu" title="nuevo_genero" onmouseup="cerrar()">Géneros</a></li>
                 <li><a href="#" class="menu" title="nuevo_marca" onmouseup="cerrar()">Marcas</a></li>
                 <li><a href="#" class="menu" title="nuevo_tipo" onmouseup="cerrar()">Tipos</a></li>

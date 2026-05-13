@@ -194,6 +194,15 @@ if ($factura !== 1) {
           <div class="col-lg-9">
             <input type="text" class="form-control" id="subtotal" value="0" readonly>
           </div>
+          <div id="lbl_ahorro" style="display:none;">
+            <label class="col-lg-3 control-label" style="color:#d9534f;">
+              <span class="glyphicon glyphicon-tag"></span> Ahorro $
+            </label>
+            <div class="col-lg-9">
+              <input type="text" class="form-control" id="ahorro" value="0,00" readonly
+                     style="color:#d9534f; font-weight:bold;">
+            </div>
+          </div>
           <label class="col-lg-3 control-label">Total $</label>
           <div class="col-lg-9">
             <input type="text" class="form-control" id="total" value="0" readonly>

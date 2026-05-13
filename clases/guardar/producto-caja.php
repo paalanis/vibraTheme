@@ -4,6 +4,7 @@ if (!isset($_SESSION['usuario'])) {
     header("Location: ../../../index.php"); exit();
 }
 require_once '../../conexion/conexion.php';
+require_once '../../conexion/descuentos.php';   // ← resolver de descuentos
 if (mysqli_connect_errno()) {
     echo json_encode(['success' => 'false']); exit();
 }
@@ -25,18 +26,17 @@ if ($codigo_cargado !== '') {
     $cantidad = (float)($_REQUEST['dato_cantidad'] ?? 1);
 }
 
-// Buscar producto — precio_venta calculado desde costo y margen
+// ── Buscar producto — incluir id_marca e id_tipo para resolver descuentos ──
 $stmt = mysqli_prepare($conexion,
-    "SELECT id_productos,
-            precio_costo,
-            margen_ganancia,
-            ROUND(precio_costo * (1 + margen_ganancia / 100), 2) AS precio_venta
+    "SELECT id_productos, id_marca, id_tipo,
+            precio_costo, margen_ganancia,
+            ROUND(precio_costo * (1 + margen_ganancia / 100), 2) AS precio_lista_calc
      FROM tb_productos
      WHERE codigo = ?"
 );
 mysqli_stmt_bind_param($stmt, 's', $codigo);
 mysqli_stmt_execute($stmt);
-mysqli_stmt_bind_result($stmt, $id_producto, $precio_costo, $margen_ganancia, $precio_sql);
+mysqli_stmt_bind_result($stmt, $id_producto, $id_marca, $id_tipo, $precio_costo, $margen_ganancia, $precio_lista_sql);
 $found = (bool)mysqli_stmt_fetch($stmt);
 mysqli_stmt_close($stmt);
 
@@ -49,11 +49,21 @@ if (!$found) {
     exit();
 }
 
-$fecha    = $_REQUEST['dato_fecha'] ?? '';
-$precio   = (float)($precio_sql ?? 0);
-$subtotal = round($precio * $cantidad, 2);
+$fecha = $_REQUEST['dato_fecha'] ?? '';
 
-// Verificar configuración de stock por sucursal
+// ── Resolver descuento activo para este producto ───────────────────────────
+$desc          = descuento_resolver($conexion, (int)$id_producto, (int)$id_marca, (int)$id_tipo, $sucursal);
+$precio_lista  = (float)$precio_lista_sql;
+$desc_pct      = (float)$desc['porcentaje'];   // 0.0 si no hay descuento
+$id_desc_val   = $desc['id_descuento'];         // null si no hay descuento
+
+// precio_venta = precio final que paga el cliente (con descuento aplicado)
+$precio_venta   = round($precio_lista * (1 - $desc_pct / 100), 2);
+// descuento_monto = $ ahorrados en esta línea
+$descuento_monto = round(($precio_lista - $precio_venta) * $cantidad, 2);
+$subtotal        = round($precio_venta * $cantidad, 2);
+
+// ── Verificar configuración de stock por sucursal ──────────────────────────
 $permite_sin_stock = '1';
 $stmt_cfg = mysqli_prepare($conexion,
     "SELECT valor FROM tb_configuracion
@@ -67,7 +77,7 @@ if ($stmt_cfg) {
     mysqli_stmt_close($stmt_cfg);
 }
 
-// Stock físico en tb_existencias
+// ── Stock físico disponible ────────────────────────────────────────────────
 $stmt_stock = mysqli_prepare($conexion,
     "SELECT COALESCE(cantidad, 0) FROM tb_existencias WHERE id_productos = ?"
 );
@@ -77,9 +87,7 @@ mysqli_stmt_bind_result($stmt_stock, $stock_fisico);
 $stock_fisico = mysqli_stmt_fetch($stmt_stock) ? (float)$stock_fisico : 0;
 mysqli_stmt_close($stmt_stock);
 
-// Descontar lo ya reservado en carritos abiertos (estado=0).
-// Sin esto, agregar el mismo producto N veces pasa el control individualmente
-// pero al confirmar el total supera el stock real → saldo negativo.
+// Descontar lo ya reservado en carritos abiertos (estado=0)
 $stmt_carrito = mysqli_prepare($conexion,
     "SELECT COALESCE(SUM(cantidad), 0) FROM tb_ventas
      WHERE id_productos = ? AND id_sucursal = ? AND estado = '0'"
@@ -105,15 +113,19 @@ if ($sin_stock && $permite_sin_stock === '0') {
     exit();
 }
 
-// Insertar en tb_ventas
+// ── Insertar en tb_ventas con descuento ────────────────────────────────────
 $stmt2 = mysqli_prepare($conexion,
     "INSERT INTO tb_ventas
-     (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad, precio_venta, subtotal, id_cierre)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad,
+      precio_lista, descuento_pct, descuento_monto, id_descuento,
+      precio_venta, subtotal, id_cierre)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 );
-mysqli_stmt_bind_param($stmt2, 'siiiidddi',
+mysqli_stmt_bind_param($stmt2, 'siiiiddddiidi',
     $fecha, $cliente, $sucursal, $factura, $id_producto,
-    $cantidad, $precio, $subtotal, $cierre
+    $cantidad,
+    $precio_lista, $desc_pct, $descuento_monto, $id_desc_val,
+    $precio_venta, $subtotal, $cierre
 );
 mysqli_stmt_execute($stmt2);
 mysqli_stmt_close($stmt2);

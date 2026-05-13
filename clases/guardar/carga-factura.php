@@ -38,15 +38,23 @@ if ($duplicado) {
 }
 
 // Inserta en carrito (estado queda en 0 hasta confirmar factura).
+// precio_lista = mismo precio (no hay descuento automático en esta ruta manual)
 // Tipos: s=fecha, i=cliente, i=sucursal, i=factura, i=producto,
-//        d=cantidad, d=precio, d=subtotal, i=cierre
+//        d=cantidad, d=precio_lista, d=descuento_pct, d=descuento_monto, i=id_descuento, d=precio, d=subtotal, i=cierre
+$null_desc  = null;
+$cero_pct   = 0.0;
+$cero_monto = 0.0;
 $stmt = mysqli_prepare($conexion,
     "INSERT INTO tb_ventas
-     (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad, precio_venta, subtotal, id_cierre)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     (fecha, id_clientes, id_sucursal, numero_factura, id_productos, cantidad,
+      precio_lista, descuento_pct, descuento_monto, id_descuento,
+      precio_venta, subtotal, id_cierre)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 );
-mysqli_stmt_bind_param($stmt, 'siiiidddi',
-    $fecha, $cliente, $sucursal, $factura, $producto, $cantidad, $precio, $subtotal, $cierre
+mysqli_stmt_bind_param($stmt, 'siiiiddddiidi',
+    $fecha, $cliente, $sucursal, $factura, $producto, $cantidad,
+    $precio, $cero_pct, $cero_monto, $null_desc,
+    $precio, $subtotal, $cierre
 );
 mysqli_stmt_execute($stmt);
 mysqli_stmt_close($stmt);

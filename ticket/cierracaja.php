@@ -55,10 +55,9 @@ while (mysqli_stmt_fetch($stmt2)) {
 mysqli_stmt_close($stmt2);
 
 // ── Mueve ventas al acumulado ─────────────────────────────────────────────────
-$stmt3 = mysqli_prepare($conexion, "CALL mover_ventas(?)");
-mysqli_stmt_bind_param($stmt3, 'i', $cierre_actual);
-mysqli_stmt_execute($stmt3);
-mysqli_stmt_close($stmt3);
+// El movimiento lo realiza guardar/cierracaja.php antes de llamar a este ticket.
+// La llamada a CALL mover_ventas() fue eliminada: el SP vive en otra BD
+// y generaba 4 operaciones innecesarias al servidor MySQL en cada cierre.
 
 // ── Totales ───────────────────────────────────────────────────────────────────
 $retiro = array_sum(array_column($rows_retiros, 'monto'));
