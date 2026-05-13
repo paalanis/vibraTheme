@@ -1,12 +1,13 @@
 <?php
+ob_start(); // captura cualquier output accidental antes del JSON (warnings, BOM, etc.)
 session_start();
 if (!isset($_SESSION['usuario'])) {
-    header("Location: ../../../index.php"); exit();
+    ob_clean(); header("Location: ../../../index.php"); exit();
 }
 require_once '../../conexion/conexion.php';
-require_once '../../conexion/descuentos.php';   // ← resolver de descuentos
+require_once '../../conexion/descuentos.php';
 if (mysqli_connect_errno()) {
-    echo json_encode(['success' => 'false']); exit();
+    ob_clean(); echo json_encode(['success' => 'false']); exit();
 }
 
 $codigo_cargado = $_REQUEST['dato_codigo'] ?? '';
@@ -45,7 +46,7 @@ $factura = (int)($_REQUEST['dato_factura'] ?? 0);
 $cliente = (int)($_REQUEST['dato_cliente'] ?? 0);
 
 if (!$found) {
-    echo json_encode(['success' => 'no_existe', 'factura' => $factura, 'cliente' => $cliente, 'cierre' => $cierre]);
+    ob_clean(); echo json_encode(['success' => 'no_existe', 'factura' => $factura, 'cliente' => $cliente, 'cierre' => $cierre]);
     exit();
 }
 
@@ -102,7 +103,7 @@ $stock_actual = $stock_fisico - $en_carrito;
 $sin_stock    = ($stock_actual < $cantidad);
 
 if ($sin_stock && $permite_sin_stock === '0') {
-    echo json_encode([
+    ob_clean(); echo json_encode([
         'success'  => 'sin_stock',
         'factura'  => $factura,
         'cliente'  => $cliente,
@@ -121,7 +122,7 @@ $stmt2 = mysqli_prepare($conexion,
       precio_venta, subtotal, id_cierre)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 );
-mysqli_stmt_bind_param($stmt2, 'siiiiddddiidi',
+mysqli_stmt_bind_param($stmt2, 'siiiiddddiddi',
     $fecha, $cliente, $sucursal, $factura, $id_producto,
     $cantidad,
     $precio_lista, $desc_pct, $descuento_monto, $id_desc_val,
@@ -130,7 +131,7 @@ mysqli_stmt_bind_param($stmt2, 'siiiiddddiidi',
 mysqli_stmt_execute($stmt2);
 mysqli_stmt_close($stmt2);
 
-echo json_encode([
+ob_clean(); echo json_encode([
     'success'   => 'true',
     'factura'   => $factura,
     'cliente'   => $cliente,

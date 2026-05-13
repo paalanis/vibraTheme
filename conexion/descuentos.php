@@ -125,17 +125,20 @@ function descuento_resolver_local(
     foreach ($rules as $r) {
         $tipo    = $r['tipo_alcance'];
         $alcance = $r['id_alcance'];
-        if ($tipo === 'global') {
-            // aplica a todos — no filtrar
-        } elseif ($tipo === 'marca'    && $alcance !== $id_marca)    { continue; }
-        elseif  ($tipo === 'tipo'      && $alcance !== $id_tipo)     { continue; }
-        elseif  ($tipo === 'producto'  && $alcance !== $id_producto) { continue; }
-        else { continue; }
-        return [
-            'porcentaje'   => $r['porcentaje'],
-            'id_descuento' => $r['id_descuento'],
-            'nombre'       => $r['nombre'],
-        ];
+
+        $aplica = false;
+        if      ($tipo === 'global'   )                        { $aplica = true; }
+        elseif  ($tipo === 'marca'    && $alcance === $id_marca)    { $aplica = true; }
+        elseif  ($tipo === 'tipo'     && $alcance === $id_tipo)     { $aplica = true; }
+        elseif  ($tipo === 'producto' && $alcance === $id_producto) { $aplica = true; }
+
+        if ($aplica) {
+            return [
+                'porcentaje'   => $r['porcentaje'],
+                'id_descuento' => $r['id_descuento'],
+                'nombre'       => $r['nombre'],
+            ];
+        }
     }
     return ['porcentaje' => 0.0, 'id_descuento' => null, 'nombre' => ''];
 }

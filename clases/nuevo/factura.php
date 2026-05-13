@@ -302,6 +302,13 @@ if ($factura !== 1) {
                 $("#dato_codigo").focus();
                 break;
             }
+          },
+          error: function() {
+            // PHP devolvió error (500, fatal, etc.) — sacar spinner y avisar
+            $('#div_remitos').html('');
+            $('#div_duplicado').html('<div id="mensaje_general" class="alert alert-danger alert-dismissible" style="height:47px" role="alert"><button type="button" class="close" data-dismiss="alert">&times;</button>Error del servidor. Verifique que todos los archivos estén subidos.</div>');
+            setTimeout("$('#mensaje_general').alert('close')", 4000);
+            $("#dato_cantidad").val(1); $("#dato_codigo").val(''); $("#nombre").val(''); $("#dato_codigo").focus();
           }
         });
       } else {

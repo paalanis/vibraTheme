@@ -295,7 +295,30 @@ function validarYCargar() {
                                 'Error, reintente!</div>');
                             setTimeout("$('#div_remitos').find('.alert').alert('close')", 2000);
                             break;
+                        case 'sin_stock':
+                            $('#div_remitos').load('clases/nuevo/facturainsumo.php',
+                                {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
+                            $('#div_duplicado').html('<div class="alert alert-warning alert-dismissible" role="alert">' +
+                                '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+                                'Sin stock suficiente (disponible: ' + data.stock + ', necesita: ' + data.necesita + ')</div>');
+                            setTimeout("$('#div_duplicado').find('.alert').alert('close')", 3000);
+                            $('#dato_cantidad').val(1);
+                            $('#dato_codigo').val('');
+                            $('#nombre').val('');
+                            $('#dato_codigo').focus();
+                            break;
                     }
+                },
+                error: function() {
+                    $('#div_remitos').html('');
+                    $('#div_duplicado').html('<div class="alert alert-danger alert-dismissible" role="alert">' +
+                        '<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>' +
+                        'Error del servidor. Verifique los archivos.</div>');
+                    setTimeout("$('#div_duplicado').find('.alert').alert('close')", 4000);
+                    $('#dato_cantidad').val(1);
+                    $('#dato_codigo').val('');
+                    $('#nombre').val('');
+                    $('#dato_codigo').focus();
                 }
             });
         } else {
