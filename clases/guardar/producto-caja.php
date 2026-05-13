@@ -67,17 +67,31 @@ if ($stmt_cfg) {
     mysqli_stmt_close($stmt_cfg);
 }
 
-// Consultar stock
+// Stock físico en tb_existencias
 $stmt_stock = mysqli_prepare($conexion,
     "SELECT COALESCE(cantidad, 0) FROM tb_existencias WHERE id_productos = ?"
 );
 mysqli_stmt_bind_param($stmt_stock, 'i', $id_producto);
 mysqli_stmt_execute($stmt_stock);
-mysqli_stmt_bind_result($stmt_stock, $stock_actual);
-$stock_actual = mysqli_stmt_fetch($stmt_stock) ? (float)$stock_actual : 0;
+mysqli_stmt_bind_result($stmt_stock, $stock_fisico);
+$stock_fisico = mysqli_stmt_fetch($stmt_stock) ? (float)$stock_fisico : 0;
 mysqli_stmt_close($stmt_stock);
 
-$sin_stock = ($stock_actual < $cantidad);
+// Descontar lo ya reservado en carritos abiertos (estado=0).
+// Sin esto, agregar el mismo producto N veces pasa el control individualmente
+// pero al confirmar el total supera el stock real → saldo negativo.
+$stmt_carrito = mysqli_prepare($conexion,
+    "SELECT COALESCE(SUM(cantidad), 0) FROM tb_ventas
+     WHERE id_productos = ? AND id_sucursal = ? AND estado = '0'"
+);
+mysqli_stmt_bind_param($stmt_carrito, 'ii', $id_producto, $sucursal);
+mysqli_stmt_execute($stmt_carrito);
+mysqli_stmt_bind_result($stmt_carrito, $en_carrito);
+$en_carrito = mysqli_stmt_fetch($stmt_carrito) ? (float)$en_carrito : 0;
+mysqli_stmt_close($stmt_carrito);
+
+$stock_actual = $stock_fisico - $en_carrito;
+$sin_stock    = ($stock_actual < $cantidad);
 
 if ($sin_stock && $permite_sin_stock === '0') {
     echo json_encode([

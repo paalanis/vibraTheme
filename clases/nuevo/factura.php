@@ -274,6 +274,13 @@ if ($factura !== 1) {
                 $('#div_remitos').load('clases/nuevo/facturainsumo.php', {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
                 $("#dato_cantidad").val(1); $("#dato_codigo").val(''); $("#nombre").val(''); $("#dato_codigo").focus();
                 break;
+              case 'sin_stock':
+                // Restaurar tabla (sacar spinner) y mostrar aviso de stock insuficiente
+                $('#div_remitos').load('clases/nuevo/facturainsumo.php', {factura: data.factura, cliente: data.cliente, cierre: data.cierre});
+                $('#div_duplicado').html('<div id="mensaje_general" class="alert alert-warning alert-dismissible" style="height:47px" role="alert"><button type="button" class="close" data-dismiss="alert">&times;</button>Sin stock suficiente (disponible: ' + data.stock + ', necesita: ' + data.necesita + ')</div>');
+                setTimeout("$('#mensaje_general').alert('close')", 3000);
+                $("#dato_cantidad").val(1); $("#dato_codigo").val(''); $("#nombre").val(''); $("#dato_codigo").focus();
+                break;
               case 'no_existe':
                 $('#div_duplicado').html('<div id="mensaje_general" class="alert alert-danger alert-dismissible" style="height:47px" role="alert"><button type="button" class="close" data-dismiss="alert">&times;</button>Producto inexistente!</div>');
                 setTimeout("$('#mensaje_general').alert('close')", 2000);
