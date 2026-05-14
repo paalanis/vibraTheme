@@ -355,12 +355,17 @@ foreach ($reglas as $r) {
       <div class="form-group form-group-sm">
         <label class="col-sm-2 control-label">Condición de pago</label>
         <div class="col-sm-6">
-          <div id="desc_condiciones_lista" style="max-height:110px; overflow-y:auto; border:1px solid #ccc; border-radius:4px; padding:6px; background:#fff;">
-            <span class="text-muted" style="font-size:12px;">Cargando...</span>
+          <div class="checkbox" style="margin-top:0; margin-bottom:6px;">
+            <label style="font-weight:bold;">
+              <input type="checkbox" id="desc_todas_condiciones">
+              Aplica a <strong>todas</strong> las condiciones
+            </label>
           </div>
-          <p class="help-block" style="margin-top:4px; margin-bottom:0;">
-            Sin selección = aplica a <strong>todas</strong> las condiciones.
-          </p>
+          <div id="desc_condiciones_bloque">
+            <div id="desc_condiciones_lista" style="max-height:110px; overflow-y:auto; border:1px solid #ccc; border-radius:4px; padding:6px; background:#fff;">
+              <span class="text-muted" style="font-size:12px;">Cargando...</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -413,7 +418,7 @@ foreach ($reglas as $r) {
 var csrfToken = $('meta[name="csrf-token"]').attr('content') || '';
 
 // Limpiar handlers anteriores antes de re-registrar (evita acumulación por reload del panel)
-$(document).off('.descuentos');
+$(document).off('.descuentos').off('.descuentos_preview');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function esc(s) { return $('<span>').text(s || '').html(); }
@@ -448,15 +453,25 @@ var cacheCondiciones = null;
 // Variable JS autoritativa — no leer del DOM al guardar (el panel puede haberse recargado)
 var condicionesSeleccionadas = [];
 
-function cargarCondicionesForm(seleccionadas) {
+function cargarCondicionesForm(seleccionadas, todasLasCondiciones) {
     seleccionadas = seleccionadas || [];
     condicionesSeleccionadas = seleccionadas.slice();
+
+    // todasLasCondiciones=true  → checkbox maestro tildado, lista oculta
+    // todasLasCondiciones=false → checkbox maestro libre, lista visible
+    if (todasLasCondiciones) {
+        $('#desc_todas_condiciones').prop('checked', true);
+        $('#desc_condiciones_bloque').hide();
+        return;
+    }
+
+    $('#desc_todas_condiciones').prop('checked', false);
+    $('#desc_condiciones_bloque').show();
+
     if (cacheCondiciones) {
-        // Render síncrono sin flash de "Cargando..."
         renderCondicionesForm(cacheCondiciones, seleccionadas);
         return;
     }
-    // Primera vez: mostrar indicador y cargar via AJAX
     $('#desc_condiciones_lista').html('<span class="text-muted" style="font-size:12px;">Cargando...</span>');
     $.post('clases/nuevo/descuentos.php', {accion:'condiciones'}, function(lista) {
         cacheCondiciones = lista;
@@ -485,9 +500,33 @@ $(document).on('change.descuentos', '.desc_chk_condicion', function() {
     });
 });
 
+// Checkbox maestro "Aplica a todas las condiciones"
+$('#desc_todas_condiciones').on('change', function() {
+    if ($(this).is(':checked')) {
+        $('#desc_condiciones_bloque').hide();
+        // Deseleccionar todos los individuales por consistencia
+        $('#desc_condiciones_lista .desc_chk_condicion').prop('checked', false);
+        condicionesSeleccionadas = [];
+    } else {
+        $('#desc_condiciones_bloque').show();
+        // Si el cache ya está, renderizar la lista sin ninguna seleccionada
+        if (cacheCondiciones) {
+            renderCondicionesForm(cacheCondiciones, []);
+        } else {
+            $('#desc_condiciones_lista').html('<span class="text-muted" style="font-size:12px;">Cargando...</span>');
+            $.post('clases/nuevo/descuentos.php', {accion:'condiciones'}, function(lista) {
+                cacheCondiciones = lista;
+                renderCondicionesForm(lista, []);
+            }, 'json');
+        }
+    }
+});
+
 function getCondicionesSeleccionadas() {
-    // Leer directamente del DOM — el formulario está abierto, los checkboxes están presentes.
-    // Usar la variable JS como fallback por si acaso el DOM fue reemplazado.
+    // Si el checkbox maestro está tildado → NULL (aplica a todas)
+    if ($('#desc_todas_condiciones').is(':checked')) {
+        return null;
+    }
     var domIds = [];
     $('#desc_condiciones_lista .desc_chk_condicion:checked').each(function() {
         domIds.push(String($(this).val()));
@@ -615,7 +654,8 @@ $('#desc_btn_hoy').on('click', function() {
 // ── Mostrar / ocultar formulario ───────────────────────────────────────────
 $('#desc_btn_nueva').on('click', function() {
     limpiarFormulario();
-    cargarCondicionesForm([]);
+    // Nueva regla: por defecto aplica a todas las condiciones
+    cargarCondicionesForm([], true);
     $('#desc_frm_titulo').html('<strong>Nueva regla de descuento</strong>');
     $('#desc_frm_panel').slideDown(200);
     $('#desc_nombre').focus();
@@ -634,6 +674,8 @@ function limpiarFormulario() {
     $('#desc_activo').prop('checked', true);
     $('#desc_acumulable').prop('checked', false);
     condicionesSeleccionadas = [];
+    $('#desc_todas_condiciones').prop('checked', false);
+    $('#desc_condiciones_bloque').show();
     $('#desc_preview_acum').hide().empty();
     $('#desc_frm_alerta').hide();
 }
@@ -685,8 +727,11 @@ $(document).on('click.descuentos', '.desc_btn_editar', function() {
             });
         }
         // Condiciones de pago
-        var condSel = d.condiciones_pago ? d.condiciones_pago.split(',') : [];
-        cargarCondicionesForm(condSel);
+        // condiciones_pago NULL o '' → aplica a todas (checkbox maestro tildado)
+        var condStr  = d.condiciones_pago || '';
+        var todasCond = (condStr === '');
+        var condSel  = todasCond ? [] : condStr.split(',');
+        cargarCondicionesForm(condSel, todasCond);
         // Acumulable
         $('#desc_acumulable').prop('checked', d.acumulable == 1);
         if (d.acumulable == 1) actualizarPreviewAcum();

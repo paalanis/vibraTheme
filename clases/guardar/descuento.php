@@ -32,7 +32,7 @@ if ($accion === 'crear') {
     $porcentaje   = (float)($_POST['porcentaje'] ?? 0);
     $fecha_desde  = inputFecha($_POST['fecha_desde'] ?? '');
     $fecha_hasta  = inputFecha($_POST['fecha_hasta'] ?? '');
-    $activo       = isset($_POST['activo']) ? 1 : 0;
+    $activo       = (int)($_POST['activo'] ?? 0) ? 1 : 0;
     $id_sucursal  = trim($_POST['id_sucursal'] ?? '') !== '' ? (int)$_POST['id_sucursal'] : null;
     $creado_por   = (int)($_SESSION['id_usuario'] ?? 0);
 
@@ -56,9 +56,9 @@ if ($accion === 'crear') {
           activo, id_sucursal, condiciones_pago, acumulable, creado_por)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
-    // ssidssiiisi: nombre(s), tipo(s), id_alcance(i), porcentaje(d), fecha_desde(s),
+    // ssidssiisii: nombre(s), tipo(s), id_alcance(i), porcentaje(d), fecha_desde(s),
     //              fecha_hasta(s), activo(i), id_sucursal(i), condiciones_pago(s), acumulable(i), creado_por(i)
-    mysqli_stmt_bind_param($stmt, 'ssidssiiisi',
+    mysqli_stmt_bind_param($stmt, 'ssidssiisii',
         $nombre, $tipo_alcance, $id_alcance, $porcentaje,
         $fecha_desde, $fecha_hasta, $activo, $id_sucursal,
         $condiciones_pago, $acumulable, $creado_por
@@ -85,7 +85,7 @@ if ($accion === 'actualizar') {
     $porcentaje   = (float)($_POST['porcentaje'] ?? 0);
     $fecha_desde  = inputFecha($_POST['fecha_desde'] ?? '');
     $fecha_hasta  = inputFecha($_POST['fecha_hasta'] ?? '');
-    $activo       = isset($_POST['activo']) ? 1 : 0;
+    $activo       = (int)($_POST['activo'] ?? 0) ? 1 : 0;
     $id_sucursal  = trim($_POST['id_sucursal'] ?? '') !== '' ? (int)$_POST['id_sucursal'] : null;
 
     if ($id <= 0 || $nombre === '' || $porcentaje <= 0 || $porcentaje > 100) {
@@ -103,7 +103,7 @@ if ($accion === 'actualizar') {
              condiciones_pago=?, acumulable=?
          WHERE id_descuento=?"
     );
-    mysqli_stmt_bind_param($stmt, 'ssidssiiisi',
+    mysqli_stmt_bind_param($stmt, 'ssidssiisii',
         $nombre, $tipo_alcance, $id_alcance, $porcentaje,
         $fecha_desde, $fecha_hasta, $activo, $id_sucursal,
         $condiciones_pago, $acumulable, $id
