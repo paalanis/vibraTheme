@@ -9,8 +9,8 @@ if (mysqli_connect_errno()) {
 }
 
 $stmt = mysqli_prepare($conexion,
-    "SELECT id_condicion, nombre, descuento, cupon, dias
-     FROM tb_condicion
+    "SELECT id_condicion_venta, nombre, descuento, cupon, dias
+     FROM tb_condicion_venta
      ORDER BY nombre ASC"
 );
 mysqli_stmt_execute($stmt);
@@ -33,7 +33,11 @@ $dia_labels = [1=>'Dom', 2=>'Lun', 3=>'Mar', 4=>'Mié', 5=>'Jue', 6=>'Vie', 7=>'
 
 function dias_texto(string $dias, array $labels): string {
     if ($dias === '') return '<span class="text-muted">—</span>';
-    $nums = array_filter(array_map('intval', explode(',', $dias)));
+    // Soporta ambos formatos: '1234567' (legacy) y '1,2,3,4,5,6,7' (nuevo)
+    $nums = (strpos($dias, ',') !== false)
+        ? array_map('intval', explode(',', $dias))
+        : array_map('intval', str_split($dias));
+    $nums = array_filter($nums, fn($n) => $n >= 1 && $n <= 7);
     $out  = [];
     foreach ($nums as $n) {
         if (isset($labels[$n])) $out[] = $labels[$n];

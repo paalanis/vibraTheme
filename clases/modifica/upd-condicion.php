@@ -21,7 +21,15 @@ $descuento = number_format((float)($r_dto ?? 0), 2, '.', '');
 $cupon     = ($r_cup === '1') ? '1' : '0';
 $dias      = $r_dias ?? '';
 
-$dias_activos = array_map('intval', array_filter(explode(',', $dias), 'strlen'));
+// Soporta ambos formatos: '1234567' (legacy) y '1,2,3,4,5,6,7' (nuevo)
+$dias_activos = (strpos($dias, ',') !== false)
+    ? array_map('intval', array_filter(explode(',', $dias), 'strlen'))
+    : array_map('intval', array_filter(str_split($dias), 'strlen'));
+$dias_activos = array_values(array_filter($dias_activos, fn($n) => $n >= 1 && $n <= 7));
+
+// Normalizar siempre a formato con comas para el hidden input
+// Así el PHP de modifica siempre recibe '1,2,3,4,5,6,7' y nunca '1234567'
+$dias_normalizado = implode(',', $dias_activos);
 $dia_labels   = [1=>'Dom', 2=>'Lun', 3=>'Mar', 4=>'Mié', 5=>'Jue', 6=>'Vie', 7=>'Sáb'];
 ?>
 <form class="form-horizontal" role="form" id="formulario_nuevo"
@@ -95,7 +103,7 @@ $dia_labels   = [1=>'Dom', 2=>'Lun', 3=>'Mar', 4=>'Mié', 5=>'Jue', 6=>'Vie', 7=
               <span class="glyphicon glyphicon-unchecked"></span> Ninguno
             </button>
             <input type="hidden" id="dato_dias"
-                   value="<?php echo htmlspecialchars($dias, ENT_QUOTES, 'UTF-8'); ?>">
+                   value="<?php echo htmlspecialchars($dias_normalizado, ENT_QUOTES, 'UTF-8'); ?>">
           </div>
         </div>
 
