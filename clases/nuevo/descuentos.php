@@ -445,9 +445,12 @@ function cargarTipos(cb) {
 
 // ── Cache de condiciones de pago ──────────────────────────────────────────
 var cacheCondiciones = null;
+// Variable JS autoritativa — no leer del DOM al guardar (el panel puede haberse recargado)
+var condicionesSeleccionadas = [];
 
 function cargarCondicionesForm(seleccionadas) {
     seleccionadas = seleccionadas || [];
+    condicionesSeleccionadas = seleccionadas.slice(); // copia independiente
     var $div = $('#desc_condiciones_lista').html('<span class="text-muted" style="font-size:12px;">Cargando...</span>');
     if (cacheCondiciones) {
         renderCondicionesForm(cacheCondiciones, seleccionadas); return;
@@ -471,10 +474,17 @@ function renderCondicionesForm(lista, seleccionadas) {
     });
 }
 
+// Actualizar variable JS al cambiar cualquier checkbox de condición
+$(document).on('change.descuentos', '.desc_chk_condicion', function() {
+    condicionesSeleccionadas = [];
+    $('#desc_condiciones_lista .desc_chk_condicion:checked').each(function() {
+        condicionesSeleccionadas.push(String($(this).val()));
+    });
+});
+
 function getCondicionesSeleccionadas() {
-    var ids = [];
-    $('#desc_condiciones_lista .desc_chk_condicion:checked').each(function() { ids.push($(this).val()); });
-    return ids.join(',') || null; // null = todas
+    // Leer de la variable JS, no del DOM — el DOM puede haber sido reemplazado
+    return condicionesSeleccionadas.length > 0 ? condicionesSeleccionadas.join(',') : null;
 }
 
 // Preview de acumulación al cambiar checkbox
@@ -511,7 +521,9 @@ function actualizarPreviewAcum() {
 
 $('#desc_acumulable').on('change', actualizarPreviewAcum);
 $('#desc_porcentaje').on('change', function() { if ($('#desc_acumulable').is(':checked')) actualizarPreviewAcum(); });
-$(document).on('change', '.desc_chk_condicion', function() { if ($('#desc_acumulable').is(':checked')) actualizarPreviewAcum(); });
+// (El handler de .desc_chk_condicion para la variable JS está arriba con namespace .descuentos)
+// Solo re-disparar preview si acumulable está activo:
+$(document).on('change.descuentos_preview', '.desc_chk_condicion', function() { if ($('#desc_acumulable').is(':checked')) actualizarPreviewAcum(); });
 
 // ── Cambio de tipo_alcance — actualiza selector dinámico ──────────────────
 $('#desc_tipo_alcance').on('change', function() {
@@ -612,6 +624,7 @@ function limpiarFormulario() {
     $('#desc_fecha_hasta').val('');
     $('#desc_activo').prop('checked', true);
     $('#desc_acumulable').prop('checked', false);
+    condicionesSeleccionadas = [];
     $('#desc_preview_acum').hide().empty();
     $('#desc_frm_alerta').hide();
 }

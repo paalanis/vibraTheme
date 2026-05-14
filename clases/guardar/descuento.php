@@ -48,7 +48,7 @@ if ($accion === 'crear') {
     if ($tipo_alcance === 'global') $id_alcance = null;
 
     $condiciones_pago = trim($_POST['condiciones_pago'] ?? '') ?: null;
-    $acumulable       = isset($_POST['acumulable']) ? 1 : 0;
+    $acumulable       = intval($_POST['acumulable'] ?? 0) === 1 ? 1 : 0;
 
     $stmt = mysqli_prepare($conexion,
         "INSERT INTO tb_descuentos
@@ -94,7 +94,7 @@ if ($accion === 'actualizar') {
     if ($tipo_alcance === 'global') $id_alcance = null;
 
     $condiciones_pago = trim($_POST['condiciones_pago'] ?? '') ?: null;
-    $acumulable       = isset($_POST['acumulable']) ? 1 : 0;
+    $acumulable       = intval($_POST['acumulable'] ?? 0) === 1 ? 1 : 0;
 
     $stmt = mysqli_prepare($conexion,
         "UPDATE tb_descuentos
