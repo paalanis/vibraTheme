@@ -21,14 +21,11 @@ $descuento = number_format((float)($r_dto ?? 0), 2, '.', '');
 $cupon     = ($r_cup === '1') ? '1' : '0';
 $dias      = $r_dias ?? '';
 
-// Pre-calcular qué checkboxes de días deben quedar marcados
 $dias_activos = array_map('intval', array_filter(explode(',', $dias), 'strlen'));
-
-$dia_labels = [1=>'Dom', 2=>'Lun', 3=>'Mar', 4=>'Mié', 5=>'Jue', 6=>'Vie', 7=>'Sáb'];
+$dia_labels   = [1=>'Dom', 2=>'Lun', 3=>'Mar', 4=>'Mié', 5=>'Jue', 6=>'Vie', 7=>'Sáb'];
 ?>
-
 <form class="form-horizontal" role="form" id="formulario_nuevo"
-      onsubmit="event.preventDefault(); modifica('condicion_venta')">
+      onsubmit="event.preventDefault(); modifica('condicion')">
 
 <div class="modal-header">
   <h4 class="modal-title">Modificar Condición de Venta</h4>
@@ -97,7 +94,8 @@ $dia_labels = [1=>'Dom', 2=>'Lun', 3=>'Mar', 4=>'Mié', 5=>'Jue', 6=>'Vie', 7=>'
             <button type="button" class="btn btn-xs btn-default" id="btn_limpiar_dias">
               <span class="glyphicon glyphicon-unchecked"></span> Ninguno
             </button>
-            <input type="hidden" id="dato_dias" value="<?php echo htmlspecialchars($dias, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" id="dato_dias"
+                   value="<?php echo htmlspecialchars($dias, ENT_QUOTES, 'UTF-8'); ?>">
           </div>
         </div>
 
@@ -125,25 +123,19 @@ $dia_labels = [1=>'Dom', 2=>'Lun', 3=>'Mar', 4=>'Mié', 5=>'Jue', 6=>'Vie', 7=>'
 <script>
 $(function() {
 
-  // ── Cupón ─────────────────────────────────────────────────────────────────
   $('#chk_cupon').on('change', function() {
     $('#dato_cupon').val($(this).is(':checked') ? '1' : '0');
   });
 
-  // ── Días ──────────────────────────────────────────────────────────────────
   function actualizarDias() {
     var sel = [];
     $('.dia-check:checked').each(function() { sel.push(parseInt($(this).val())); });
     sel.sort(function(a, b) { return a - b; });
     $('#dato_dias').val(sel.join(','));
-    // Actualizar estilo de etiquetas
     $('.dia-check').each(function() {
       var $lbl = $(this).closest('label');
-      if ($(this).is(':checked')) {
-        $lbl.removeClass('label-default').addClass('label-primary');
-      } else {
-        $lbl.removeClass('label-primary').addClass('label-default');
-      }
+      $lbl.toggleClass('label-default', !$(this).is(':checked'))
+          .toggleClass('label-primary',  $(this).is(':checked'));
     });
   }
 
