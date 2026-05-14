@@ -450,11 +450,14 @@ var condicionesSeleccionadas = [];
 
 function cargarCondicionesForm(seleccionadas) {
     seleccionadas = seleccionadas || [];
-    condicionesSeleccionadas = seleccionadas.slice(); // copia independiente
-    var $div = $('#desc_condiciones_lista').html('<span class="text-muted" style="font-size:12px;">Cargando...</span>');
+    condicionesSeleccionadas = seleccionadas.slice();
     if (cacheCondiciones) {
-        renderCondicionesForm(cacheCondiciones, seleccionadas); return;
+        // Render síncrono sin flash de "Cargando..."
+        renderCondicionesForm(cacheCondiciones, seleccionadas);
+        return;
     }
+    // Primera vez: mostrar indicador y cargar via AJAX
+    $('#desc_condiciones_lista').html('<span class="text-muted" style="font-size:12px;">Cargando...</span>');
     $.post('clases/nuevo/descuentos.php', {accion:'condiciones'}, function(lista) {
         cacheCondiciones = lista;
         renderCondicionesForm(lista, seleccionadas);
@@ -483,8 +486,14 @@ $(document).on('change.descuentos', '.desc_chk_condicion', function() {
 });
 
 function getCondicionesSeleccionadas() {
-    // Leer de la variable JS, no del DOM — el DOM puede haber sido reemplazado
-    return condicionesSeleccionadas.length > 0 ? condicionesSeleccionadas.join(',') : null;
+    // Leer directamente del DOM — el formulario está abierto, los checkboxes están presentes.
+    // Usar la variable JS como fallback por si acaso el DOM fue reemplazado.
+    var domIds = [];
+    $('#desc_condiciones_lista .desc_chk_condicion:checked').each(function() {
+        domIds.push(String($(this).val()));
+    });
+    var resultado = domIds.length > 0 ? domIds : condicionesSeleccionadas;
+    return resultado.length > 0 ? resultado.join(',') : null;
 }
 
 // Preview de acumulación al cambiar checkbox
