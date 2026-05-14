@@ -25,7 +25,7 @@ $dias      = $r_dias ?? '';
 $dias_activos = (strpos($dias, ',') !== false)
     ? array_map('intval', array_filter(explode(',', $dias), 'strlen'))
     : array_map('intval', array_filter(str_split($dias), 'strlen'));
-$dias_activos = array_values(array_filter($dias_activos, fn($n) => $n >= 1 && $n <= 7));
+$dias_activos = array_values(array_filter($dias_activos, function($n) { return $n >= 1 && $n <= 7; }));
 
 // Normalizar siempre a formato con comas para el hidden input
 // Así el PHP de modifica siempre recibe '1,2,3,4,5,6,7' y nunca '1234567'

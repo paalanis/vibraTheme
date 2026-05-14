@@ -37,7 +37,7 @@ function dias_texto(string $dias, array $labels): string {
     $nums = (strpos($dias, ',') !== false)
         ? array_map('intval', explode(',', $dias))
         : array_map('intval', str_split($dias));
-    $nums = array_filter($nums, fn($n) => $n >= 1 && $n <= 7);
+    $nums = array_filter($nums, function($n) { return $n >= 1 && $n <= 7; });
     $out  = [];
     foreach ($nums as $n) {
         if (isset($labels[$n])) $out[] = $labels[$n];
